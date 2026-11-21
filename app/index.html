@@ -218,6 +218,20 @@ input[type=color]{width:32px;height:24px;padding:0;border:1px solid var(--line);
 .clip .anb{left:0}.clip .ane{right:0}
 .clip .anb:hover,.clip .ane:hover{opacity:1;height:9px}
 .clip .kf{position:absolute;bottom:9px;width:9px;height:9px;background:#fff;transform:translateX(-50%) rotate(45deg);border:1px solid #0008;z-index:3;cursor:pointer}
+.clip .kf.ease{border-radius:50%;transform:translateX(-50%);background:#ffd25a}
+.clip .kf.hold{transform:translateX(-50%);background:#ff7a7a;border-radius:1px}
+.clip .kf.sel{outline:2px solid var(--accent,#2fd5c5);outline-offset:1px}
+.kfa .props{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.kfa .props button.on{background:var(--accent,#2fd5c5);color:#062}
+.kfa .klist{display:flex;flex-direction:column;gap:3px;margin:6px 0 10px}
+.kfa .krow{display:grid;grid-template-columns:62px 58px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:6px;background:#ffffff08;cursor:pointer;font-size:12px}
+.kfa .krow.on{background:#2fd5c522;outline:1px solid var(--accent,#2fd5c5)}
+.kfa .krow select{font-size:12px}
+.kfa .curve{display:grid;grid-template-columns:1fr;gap:6px}
+.kfa canvas{width:100%;border-radius:8px;background:#11151d;display:block;touch-action:none}
+.kfa .presets{display:flex;gap:5px;flex-wrap:wrap}
+.kfa .presets button{font-size:12px;padding:4px 8px}
+.kfa .presets button.on{outline:1px solid var(--accent,#2fd5c5)}
 #box{position:relative}#box>.x{position:absolute;top:10px;right:10px;padding:0 9px}
 .code{font:700 34px/1.2 var(--font);letter-spacing:.18em;color:var(--accent);text-align:center;margin:8px 0 12px;font-variant-numeric:tabular-nums}
 .pchip{border:1px solid;border-radius:99px;padding:0 8px;font-size:12px}
@@ -432,7 +446,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const CUTROOM_VERSION='1.4.1';
+const CUTROOM_VERSION='1.4.2';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -495,8 +509,8 @@ function demoProject(){
   S={s1:{id:'s1',name:'예시 클립 A',type:'sample',duration:20,c1:'#1f4fa8',c2:'#18b3a4'},s2:{id:'s2',name:'예시 클립 B',type:'sample',duration:20,c1:'#a8324f',c2:'#f09a3e'},adj:ADJ};
   const p={w:1920,h:1080,fps:30,clips:[],off:{}};P=p;
   p.clips.push(mkClip('s1','V1',0,{out:4,tin:{type:'dip',dur:.5}}),mkClip('s2','V1',4,{out:4,tin:{type:'iris',dur:.7},tout:{type:'dip',dur:.6}}),
-    mkText('V2',.4,Object.assign(clone(TEMPLATES[0][1]),{text:'컷룸 예시 프로젝트',out:3.2})),
-    mkText('V2',4.3,Object.assign(clone(TEMPLATES[2][1]),{text:'노래방 자막도 됩니다',out:3.4})));
+    mkText('V2',.4,Object.assign(clone(TPL('인트로 제목')),{text:'컷룸 예시 프로젝트',out:3.2})),
+    mkText('V2',4.3,Object.assign(clone(TPL('노래방 가사')),{text:'노래방 자막도 됩니다',out:3.4})));
   return p;
 }
 
@@ -504,9 +518,32 @@ function demoProject(){
 function val(c,p,u){
   const v=c[p];if(typeof v!=='object'||!v)return v;const k=v.k;if(!k.length)return 0;
   if(u<=k[0][0])return k[0][1];const n=k.length-1;if(u>=k[n][0])return k[n][1];
-  for(let i=0;i<n;i++)if(u<=k[i+1][0]){const a=k[i],b=k[i+1];return a[1]+(b[1]-a[1])*(u-a[0])/((b[0]-a[0])||1);}
+  for(let i=0;i<n;i++)if(u<=k[i+1][0]){const a=k[i],b=k[i+1];if(u>=b[0])return b[1];return a[1]+(b[1]-a[1])*kEase(a[2],(u-a[0])/((b[0]-a[0])||1));}
   return k[n][1];
 }
+/* 키프레임 보간(가속) — k[i][2]: 없음=선형, 'hold'=정지, [x1,y1,x2,y2]=베지어 */
+const KEASE={in:[.42,0,1,1],out:[0,0,.58,1],io:[.42,0,.58,1],back:[.34,1.56,.64,1],snap:[.7,0,.84,0],fast:[.16,1,.3,1]};
+const KEASE_NAME={lin:'선형',in:'천천히 시작 (가속)',out:'천천히 끝 (감속)',io:'부드럽게 (가속·감속)',fast:'빠르게 튀어나감',snap:'몰아서 한 번에',back:'살짝 넘쳤다 돌아옴',hold:'정지 (다음 키까지 유지)',custom:'사용자 곡선'};
+function bezAt(x1,y1,x2,y2,x){
+  if(x<=0)return 0;if(x>=1)return 1;
+  const cx=3*x1,bx=3*(x2-x1)-cx,ax=1-cx-bx,cy=3*y1,by=3*(y2-y1)-cy,ay=1-cy-by;
+  const X=s=>((ax*s+bx)*s+cx)*s,dX=s=>(3*ax*s+2*bx)*s+cx;let s=x;
+  for(let i=0;i<8;i++){const e=X(s)-x;if(Math.abs(e)<1e-5)break;const d=dX(s);if(Math.abs(d)<1e-6)break;s-=e/d;}
+  if(s<0||s>1||Math.abs(X(s)-x)>1e-3){let a=0,b=1;s=x;for(let i=0;i<30;i++){const v=X(s);if(Math.abs(v-x)<1e-5)break;if(v<x)a=s;else b=s;s=(a+b)/2;}}
+  return((ay*s+by)*s+cy)*s;
+}
+function kEase(e,x){if(!e)return x;if(e==='hold')return 0;const b=Array.isArray(e)?e:KEASE[e];return b?bezAt(b[0],b[1],b[2],b[3],x):x;}
+function kEaseKind(e){if(!e)return'lin';if(e==='hold')return'hold';if(typeof e==='string')return KEASE[e]?e:'lin';
+  for(const k in KEASE)if(KEASE[k].every((v,i)=>Math.abs(v-e[i])<.005))return k;return'custom';}
+function kEaseBez(e){if(!e||e==='hold')return[0,0,1,1];return Array.isArray(e)?e.slice():(KEASE[e]||[0,0,1,1]).slice();}
+const PNAME={x:'위치 X',y:'위치 Y',scale:'비율',rot:'회전',op:'불투명도',vol:'볼륨'};
+/* 같은 시점(u)의 키프레임 모두에 보간 적용 */
+function setEaseAt(c,u,e,only){
+  let n=0;for(const p of ANIM){if(only&&p!==only)continue;if(!isAnim(c,p))continue;const k=c[p].k;
+    for(let i=0;i<k.length;i++)if(Math.abs(k[i][0]-u)<.021){if(e==null||e==='lin')k[i].length=2;else k[i][2]=Array.isArray(e)?e.map(v=>+(+v).toFixed(3)):e;n++;}}
+  return n;
+}
+let kfSel=null; // {id,p,i}
 const isAnim=(c,p)=>typeof c[p]==='object'&&!!c[p]&&Array.isArray(c[p].k);
 const uOf=c=>+clamp(t-c.start,0,dur(c)).toFixed(3);
 function setVal(c,p,v){
@@ -734,8 +771,9 @@ function needFont(f,b,i,txt){const k=f+'|'+b+'|'+i+'|'+txt;if(fontCache.has(k))r
 const ANCH={tl:[1,1],tc:[0,1],tr:[-1,1],ml:[1,0],mc:[0,0],mr:[-1,0],bl:[1,-1],bc:[0,-1],br:[-1,-1]};
 const layoutCache=new Map();
 try{document.fonts.addEventListener('loadingdone',()=>layoutCache.clear());}catch(e){}
-function textLayout(g,c,px,txt,sty,fontOf){
-  const key=[c.font,c.bold,px.toFixed(2),c.track,txt,sty?JSON.stringify(sty):'',document.fonts?document.fonts.status:''].join('\u0001');
+function textLayout(g,c,px,txt,sty,fontOf,maxW){
+  maxW=maxW>0?Math.round(maxW):0;
+  const key=[c.font,c.bold,px.toFixed(2),c.track,txt,sty?JSON.stringify(sty):'',document.fonts?document.fonts.status:'',maxW].join('\u0001');
   let L=layoutCache.get(key);if(L)return L;
   const lines=[];let cur={g:[],w:0},i=0;const base=fontOf(null);
   for(const ch of [...txt]){
@@ -745,6 +783,24 @@ function textLayout(g,c,px,txt,sty,fontOf){
   }
   lines.push(cur);
   if(!sty){g.font=base;for(const l of lines){if(!l.g.length)continue;const full=g.measureText(l.g.map(G=>G.ch).join('')).width;const k2=full/(l.w||1);let x=0;for(const G of l.g){G.x=x;G.w*=k2;x+=G.w;}l.w=full;}}
+  // 자동 줄바꿈: 화면 폭을 넘는 줄은 띄어쓰기에서(없으면 글자 사이에서) 나눕니다
+  if(maxW>0&&lines.some(l=>l.w>maxW)){
+    const out=[];
+    for(const l of lines){
+      if(l.w<=maxW||l.g.length<2){out.push(l);continue;}
+      let rest=l.g;
+      while(rest.length){
+        const x0=rest[0].x;let end=rest.length;
+        for(let j=0;j<rest.length;j++){if(rest[j].x+rest[j].w-x0>maxW&&j>0){end=j;break;}}
+        if(end<rest.length){let sp=-1;for(let j=end;j>0;j--)if(rest[j].ch===' '){sp=j;break;}if(sp>0&&sp>end*.3)end=sp+1;}
+        const part=rest.slice(0,end);rest=rest.slice(end);
+        const px0=part[0].x,gl=part.map(G=>Object.assign({},G,{x:G.x-px0}));
+        let w=0;for(let j=gl.length-1;j>=0;j--)if(gl[j].ch!==' '){w=gl[j].x+gl[j].w;break;}
+        out.push({g:gl,w});
+      }
+    }
+    lines.length=0;lines.push(...out);
+  }
   let mx=1;if(sty)for(const st of sty)if(st&&st.s)mx=Math.max(mx,st.s);
   L={lines,mx};if(layoutCache.size>400)layoutCache.clear();layoutCache.set(key,L);return L;
 }
@@ -760,7 +816,8 @@ function drawTextLocal(g,c,u,k,W0){
   if(sty)for(const s of sty)if(s&&(s.i||s.b!=null))needFont(c.font,s.b!=null?s.b:c.bold,!!s.i,txt);
   try{g.letterSpacing=(c.track*k).toFixed(1)+'px';}catch(e){}
   g.textBaseline='middle';g.textAlign='left';g.lineJoin='round';g.miterLimit=2;
-  const LY=textLayout(g,c,px,txt,sty,fontOf),base=fontOf(null);
+  const scNow=Math.max(.05,(+val(c,'scale',u)||100)/100);
+  const LY=textLayout(g,c,px,txt,sty,fontOf,c.wrap===false||!(W0>0)?0:W0*(c.wrapW||90)/100/scNow),base=fontOf(null);
   const lh=px*c.lead*LY.mx,nL=LY.lines.length,bw=Math.max(1,...LY.lines.map(l=>l.w)),bh=lh*nL,pad=px*.38;
   const lines=LY.lines.map((l,i)=>({g:l.g,w:l.w,x:c.align==='left'?-bw/2:c.align==='right'?bw/2-l.w:-l.w/2,y:(i-(nL-1)/2)*lh}));
   const strokes=(c.strokes||[]).filter(s=>s.w>0),R=strokes.reduce((s,x)=>s+x.w,0)*k;
@@ -769,19 +826,20 @@ function drawTextLocal(g,c,u,k,W0){
   g.globalAlpha*=st.a;g.translate(ax,ay);g.translate(st.dx,st.dy);g.rotate(st.rot);g.scale(st.sc,st.sc);
   if(st.blur>0.05){const f=g.filter&&g.filter!=='none'?g.filter+' ':'';g.filter=f+`blur(${st.blur.toFixed(1)}px)`;}
   if(st.clip<1){const x0=bx-R-40*k,ww=bW+2*R+80*k;g.beginPath();g.rect(x0,by-R-300*k,ww*st.clip,bH+2*R+600*k);g.clip();}
-  if(c.bg){const ga=g.globalAlpha;g.globalAlpha=ga*c.bgo/100;g.fillStyle=c.bgc;g.beginPath();
-    if(g.roundRect)g.roundRect(bx,by,bW,bH,Math.min(bH/2,(c.bgr||0)*k));else g.rect(bx,by,bW,bH);g.fill();g.globalAlpha=ga;}
   const N=Math.max(1,chars.filter(ch=>ch!=='\n').length);
   const showN=st.chars<1?Math.ceil(st.chars*N):N;
   const whole=!sty&&st.per>=1&&showN>=N;
+  const paint=(g,shK)=>{
+  if(c.bg){const ga=g.globalAlpha;g.globalAlpha=ga*c.bgo/100;g.fillStyle=c.bgc;g.beginPath();
+    if(g.roundRect)g.roundRect(bx,by,bW,bH,Math.min(bH/2,(c.bgr||0)*k));else g.rect(bx,by,bW,bH);g.fill();g.globalAlpha=ga;}
   const each=whole?(fn=>{g.font=base;for(const l of lines){const t2=l.g.map(G=>G.ch).join('');if(t2)fn({ch:t2,s:null,w:l.w},l.x,l.y);}}):fn=>{let idx=0;for(const l of lines)for(const G of l.g){
     if(idx>=showN){idx++;continue;}let a=1,oy=0;
     if(st.per<1){const pi=clamp((st.per-(idx/N)*.6)/.4,0,1);if(pi<=0){idx++;continue;}a=pi;oy=(1-back(pi))*-40*k;}
     g.font=G.s?fontOf(G.s):base;
     if(a<1){g.save();g.globalAlpha*=a;fn(G,l.x+G.x,l.y+oy);g.restore();}else fn(G,l.x+G.x,l.y+oy);idx++;}};
   let first=true;
-  const shadowOn=()=>{if(c.sh&&first){g.shadowColor=rgba(c.shc,c.sho/100);g.shadowBlur=c.shb*k;const a2=c.sha*Math.PI/180;
-    g.shadowOffsetX=Math.cos(a2)*c.shd*k;g.shadowOffsetY=Math.sin(a2)*c.shd*k;}};
+  const shadowOn=()=>{if(c.sh&&first){g.shadowColor=rgba(c.shc,c.sho/100);g.shadowBlur=c.shb*k*shK;const a2=c.sha*Math.PI/180;
+    g.shadowOffsetX=Math.cos(a2)*c.shd*k*shK;g.shadowOffsetY=Math.sin(a2)*c.shd*k*shK;}};
   const shadowOff=()=>{if(first){g.shadowColor='transparent';g.shadowBlur=0;g.shadowOffsetX=g.shadowOffsetY=0;first=false;}};
   for(let i=strokes.length-1;i>=0;i--){
     let r=0;for(let j=0;j<=i;j++)r+=strokes[j].w;
@@ -795,7 +853,7 @@ function drawTextLocal(g,c,u,k,W0){
   shadowOff();
   if(c.kara){
     const k0=c.k0!=null?c.k0:Math.min(.3,d*.1),k1=c.k1!=null?c.k1:Math.max(k0+.1,d-.3);
-    const done=clamp((u-k0)/Math.max(.05,k1-k0),0,1)*N;let idx=0;
+    const done=clamp((u-k0)/Math.max(.05,k1-k0),0,1)*Math.min(N,showN);let idx=0;
     for(const l of lines){
       const n=l.g.length,f=clamp(done-idx,0,n);idx+=n;if(f<=0)continue;
       if(whole){const whole2=Math.floor(f),fr=f-whole2,xw=f>=n?l.w+R*2+4:l.g[whole2].x+fr*l.g[whole2].w;
@@ -805,6 +863,8 @@ function drawTextLocal(g,c,u,k,W0){
       for(const G of l.g){g.font=G.s?fontOf(G.s):base;g.fillText(G.ch,l.x+G.x,l.y);}g.restore();
     }
   }
+  };
+  paint(g,1);
   return [bW,bH,st.sc,ax,ay];
 }
 
@@ -995,6 +1055,9 @@ function drawPreviews(now){
     if(p.cn._bg){g.fillStyle=p.cn._bg;g.fillRect(0,0,w,hh);}else{const gr=g.createLinearGradient(0,0,w,hh);gr.addColorStop(0,'#2a3242');gr.addColorStop(1,'#151a24');g.fillStyle=gr;g.fillRect(0,0,w,hh);}
     if(u>cyc)continue;
     if(c.kind==='shape'){g.save();g.translate(w/2,hh/2);const k2=Math.min(w*.8/Math.max(1,c.w),hh*.7/Math.max(1,c.h));try{drawShapeLocal(g,c,u,k2,w);}catch(e){}g.restore();continue;}
+    if(p.live){const kF=P.h/1080,d=p._dim||[P.w*.5,P.h*.15],f=Math.min(w*.88/Math.max(1,d[0]),hh*.8/Math.max(1,d[1]),w/P.w*2.2);
+      g.save();g.translate(w/2,hh/2);g.scale(f,f);let r=null;try{r=drawElem(g,c,u,kF,P.w);}catch(e){}g.restore();
+      if(r&&r[0]>0)p._dim=[r[0]+((c.strokes||[]).reduce((a2,x)=>a2+x.w,0))*kF*2,r[1]+((c.strokes||[]).reduce((a2,x)=>a2+x.w,0))*kF*2];continue;}
     const lines=String(c.cnt&&c.cnt.on?cntText(c,c.cnt.to):c.text).split('\n').length,k=Math.min(hh*.24/lines/c.size/c.lead,w*.8/Math.max(1,String(c.text).split('\n').reduce((m,l)=>Math.max(m,l.length),1))/c.size*1.1);
     g.save();g.translate(w/2,hh/2);
     if(c._pv){g.translate((val(c,'x',u)-50)/100*w,(val(c,'y',u)-50)/100*hh);g.rotate(val(c,'rot',u)*Math.PI/180);const s3=val(c,'scale',u)/100;g.scale(s3,s3);g.globalAlpha=clamp(val(c,'op',u)/100,0,1);}
@@ -1060,6 +1123,7 @@ function clipLabel(c){
   if(c.kind==='text')return kf+(c.kara?'🎤 ':'')+(String(c.text).replace(/\n/g,' ')||'(빈 자막)');
   const s=S[c.src];return lk+kf+(c.kind==='audio'?'♪ ':'')+(s?s.name:'?')+(c.speed!==1?` · ${Math.round(c.speed*100)}%`:'');
 }
+let tlT=0;function tlSoon(){clearTimeout(tlT);tlT=setTimeout(()=>{if(cur)renderTimeline();},180);}
 function renderTimeline(){
   const inner=$('tlInner'),head=$('tlHead'),sc=$('tlScroll');
   inner.textContent='';head.textContent='';inner.className='t'+tool;
@@ -1116,9 +1180,16 @@ function renderTimeline(){
       if(c.ain&&c.ain!=='none')bar('anb','ainD',1,'등장');
       if(c.aout&&c.aout!=='none')bar('ane','aoutD',-1,'퇴장');
     }
-    for(const p of ANIM)if(isAnim(c,p))for(const k of c[p].k){if(k[0]<0||k[0]>d)continue;const kd=h('div','kf');kd.style.left=(k[0]*pps)+'px';
-      kd.title=`키프레임 · ${({x:'위치 X',y:'위치 Y',scale:'비율',rot:'회전',op:'불투명도',vol:'볼륨'})[p]} ${Math.round(k[1])} · 누르면 이동`;
-      kd.onpointerdown=e=>{e.stopPropagation();setPlaying(false);selectOnly(c.id);seek(c.start+k[0]);topTab=c.kind==='text'?'gfx':'fx';afterSelect();};el.append(kd);}
+    {const seen=new Set();
+    for(const p of ANIM)if(isAnim(c,p))c[p].k.forEach((k,ki)=>{if(k[0]<0||k[0]>d)return;const key=k[0].toFixed(2);if(seen.has(key))return;seen.add(key);
+      const ek=kEaseKind(k[2]),kd=h('div','kf'+(ek==='hold'?' hold':ek!=='lin'?' ease':'')+(kfSel&&kfSel.id===c.id&&Math.abs((byId(c.id)[kfSel.p]?.k?.[kfSel.i]?.[0]??-9)-k[0])<.021?' sel':''));
+      kd.style.left=(k[0]*pps)+'px';
+      const props=ANIM.filter(q=>isAnim(c,q)&&c[q].k.some(z=>Math.abs(z[0]-k[0])<.021)).map(q=>PNAME[q]);
+      kd.title=`키프레임 ${k[0].toFixed(2)}초 · ${props.join(', ')} · ${KEASE_NAME[ek]}\n누르면 이동 · 우클릭하면 가속 바꾸기`;
+      kd.onpointerdown=e=>{e.stopPropagation();if(e.button)return;setPlaying(false);selectOnly(c.id);kfSel={id:c.id,p,i:ki};seek(c.start+k[0]);
+        if(topTab!=='kfa')topTab=c.kind==='text'?'gfx':'fx';afterSelect();};
+      kd.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();setPlaying(false);selectOnly(c.id);kfSel={id:c.id,p,i:ki};afterSelect();ctxMenu(e,kfMenu(c.id,k[0]));};
+      el.append(kd);});}
     el.onpointerdown=e=>{
       if(e.button)return;e.stopPropagation();const id=c.id,tt=timeAt(e);
       if(P.lock&&P.lock[c.tr]){selectOnly(id,true);afterSelect();toast(`${c.tr} 트랙이 잠겨 있습니다. 트랙 머리의 자물쇠를 눌러 푸세요.`);return;}
@@ -1329,7 +1400,7 @@ const pct=v=>Math.round(v)+'%',sec=v=>(+v).toFixed(1)+'초',int=v=>Math.round(v)
 function section(title,extra){const s=h('div','sec'),hh=h('h3');hh.append(document.createTextNode(title));if(extra){hh.append(h('span','sp'),extra);}s.append(hh);return s;}
 
 /* ================= 위쪽 탭 ================= */
-const TOP=[['src','소스 모니터'],['fx','효과 컨트롤'],['lum','Lumetri 색상'],['gfx','기본 그래픽'],['snd','기본 사운드']];
+const TOP=[['src','소스 모니터'],['fx','효과 컨트롤'],['kfa','애니메이션 컨트롤'],['lum','Lumetri 색상'],['gfx','기본 그래픽'],['snd','기본 사운드']];
 const BOT=[['proj','프로젝트'],['eff','효과']];
 const srcVid=document.createElement('video');srcVid.playsInline=true;srcVid.preload='auto';
 function renderPanels(){
@@ -1339,7 +1410,7 @@ function renderPanels(){
   const bt=$('botTabs');bt.textContent='';
   for(const[k,n]of BOT){const b=h('button',botTab===k?'on':'',n);b.onclick=()=>{botTab=k;renderPanels();};bt.append(b);}
   const el=$('topBody'),sy=el.scrollTop;el.textContent='';if(topTab!=='src')srcVid.pause();
-  ({src:panelSource,fx:panelFx,lum:panelLum,gfx:panelGfx,snd:panelSnd})[topTab](el);el.scrollTop=sy;
+  ({src:panelSource,fx:panelFx,kfa:panelKfa,lum:panelLum,gfx:panelGfx,snd:panelSnd}[topTab]||panelFx)(el);el.scrollTop=sy;
   const eb=$('botBody');eb.textContent='';(botTab==='proj'?panelProject:panelEffects)(eb);
 }
 function need(el,ok,msg){if(ok)return true;el.append(h('p','hint',msg));return false;}
@@ -1385,6 +1456,142 @@ function linkTools(el,c){
   if(c.kind==='video'&&!c.link&&S[c.src]&&S[c.src].type==='video'){const b=h('button',null,'🔊 오디오 분리');b.onclick=()=>detachAudio(c);el.append(b);}
   if(c.link){const b=h('button',null,'🔗 연결 해제');b.title='영상과 소리를 따로 움직이게 합니다';b.onclick=()=>{selectOnly(c.id);toggleLink();};el.append(b);}
 }
+/* ================= 애니메이션 컨트롤 (키프레임 가속 곡선) ================= */
+function panelKfa(el){
+  {const r=h('div','kfa');el.append(r);el=r;}
+  const c=byId(selId);
+  if(!need(el,c,'타임라인에서 클립을 선택하세요. 키프레임(⏱)을 켠 속성의 움직임을 여기서 곡선으로 조절합니다.'))return;
+  const id=c.id,C=()=>byId(id);
+  el.append(h('h3',null,clipLabel(c)));
+  const anim=ANIM.filter(p=>isAnim(c,p)&&(c.kind==='audio'?p==='vol':p!=='vol'||hasAudio(c)));
+  if(!anim.length){
+    el.append(h('p','hint','아직 키프레임이 없습니다. 아래에서 움직일 속성을 고르면 지금 위치와 1초 뒤에 키프레임 두 개를 만들어 드립니다. 효과 컨트롤의 ⏱로 직접 켜도 됩니다.'));
+    const pr=h('div','props');
+    for(const p of (c.kind==='audio'?['vol']:['x','y','scale','rot','op'])){const b=h('button',null,'+ '+PNAME[p]);
+      b.onclick=()=>{const cc=C();if(!cc)return;pushHistory();const u=uOf(cc),d=dur(cc),v=cc[p],u1=Math.min(d,u+1),u0=u1-u<.2?Math.max(0,u-1):u;
+        const v2=p==='x'?v+20:p==='y'?v-15:p==='scale'?v*1.3:p==='rot'?v+90:p==='op'?(v>50?0:100):v;
+        cc[p]={k:[[+u0.toFixed(3),v,'io'],[+(u0===u?u1:u).toFixed(3),u0===u?v2:v]]};if(u0!==u)cc[p].k[0][1]=v2;
+        kfSel={id,p,i:0};refresh(true);};pr.append(b);}
+    el.append(pr);return;
+  }
+  if(!kfSel||kfSel.id!==id||!anim.includes(kfSel.p)){
+    const u=uOf(c);let best=null;for(const p of anim){const k=c[p].k;for(let i=0;i<k.length-1;i++)if(!best||Math.abs(k[i][0]-u)<best.d)best={p,i,d:Math.abs(k[i][0]-u)};}
+    kfSel=best?{id,p:best.p,i:best.i}:{id,p:anim[0],i:0};
+  }
+  const P0=()=>kfSel.p,K=()=>{const cc=C();return cc&&isAnim(cc,P0())?cc[P0()].k:null;};
+  if(K()&&kfSel.i>K().length-1)kfSel.i=Math.max(0,K().length-2);
+  // 속성 칩
+  const pr=h('div','props');
+  for(const p of anim){const b=h('button',p===kfSel.p?'on':'',`${PNAME[p]} · ${c[p].k.length}`);b.onclick=()=>{kfSel={id,p,i:0};renderPanels();};pr.append(b);}
+  el.append(pr);
+  const allP=h('label','hint');const ap=h('input');ap.type='checkbox';ap.checked=window._kfaAll!==false;ap.onchange=()=>window._kfaAll=ap.checked;
+  allP.append(ap,document.createTextNode(' 같은 시점의 다른 속성(위치·비율 등)에도 함께 적용'));allP.style.display='block';
+  // 키프레임 목록
+  const lst=h('div','klist');
+  const k=K();
+  if(k.length<2)lst.append(h('p','hint','키프레임이 하나뿐입니다. 재생 헤드를 옮긴 뒤 효과 컨트롤의 ◆를 눌러 하나 더 만드세요.'));
+  k.forEach((q,i)=>{
+    const r=h('div','krow'+(i===kfSel.i?' on':''));
+    const ek=kEaseKind(q[2]);
+    r.append(h('span','num',`◆ ${q[0].toFixed(2)}초`),h('span','num',fmtV(P0(),q[1])));
+    if(i<k.length-1){const sl=h('select');for(const kk of ['lin','in','out','io','fast','snap','back','hold','custom']){if(kk==='custom'&&ek!=='custom')continue;const o=h('option',null,KEASE_NAME[kk]);o.value=kk;sl.append(o);}
+      sl.value=ek;sl.onclick=e=>e.stopPropagation();
+      sl.onchange=()=>{const cc=C();pushHistory();const e2=sl.value==='lin'?null:sl.value;if(ap.checked)setEaseAt(cc,q[0],e2);else setEaseAt(cc,q[0],e2,P0());kfSel.i=i;renderTimeline();renderPanels();};
+      r.append(sl);}else r.append(h('span','hint','(마지막)'));
+    r.onclick=()=>{kfSel.i=Math.min(i,k.length-2<0?0:k.length-2);const cc=C();if(cc)seek(cc.start+q[0]);renderPanels();};
+    lst.append(r);
+  });
+  const lsec=section('키프레임 목록');lsec.append(lst);
+  if(k.length<2){el.append(lsec);return;}
+  // 곡선 편집기
+  const sec=section(`가속 곡선 · ${k[kfSel.i][0].toFixed(2)}초 → ${k[kfSel.i+1][0].toFixed(2)}초`);
+  const box=h('div','curve');
+  const cv=h('canvas');cv.width=560;cv.height=250;
+  const pv=h('canvas');pv.width=560;pv.height=60;
+  const pres=h('div','presets');
+  const info=h('p','hint','노란 점 두 개를 끌어 속도를 바꿉니다. 곡선이 가파른 곳이 빠르게, 평평한 곳이 천천히 움직이는 구간입니다. 위쪽으로 넘기면 목표를 지나쳤다 돌아옵니다.');
+  box.append(pres,cv,pv,info);sec.append(box,allP);el.append(sec,lsec);
+  const PAD={l:46,r:18,t:28,b:28},W=cv.width,H=cv.height,gw=W-PAD.l-PAD.r,gh=H-PAD.t-PAD.b;
+  const YMIN=-.5,YMAX=1.5;
+  const X=x=>PAD.l+x*gw,Y=y=>PAD.t+(1-(y-YMIN)/(YMAX-YMIN))*gh;
+  const IX=px=>(px-PAD.l)/gw,IY=py=>YMIN+(1-(py-PAD.t)/gh)*(YMAX-YMIN);
+  const cur=()=>{const q=K()&&K()[kfSel.i];return q?q[2]:null;};
+  let mode='val';
+  const draw=()=>{
+    const g=cv.getContext('2d'),e=cur(),hold=e==='hold',b=kEaseBez(e);
+    g.clearRect(0,0,W,H);
+    g.fillStyle='#11151d';g.fillRect(0,0,W,H);
+    g.strokeStyle='#ffffff10';g.lineWidth=1;
+    for(let i=0;i<=10;i++){g.beginPath();g.moveTo(X(i/10),Y(YMIN));g.lineTo(X(i/10),Y(YMAX));g.stroke();}
+    for(let y=-.5;y<=1.51;y+=.25){g.beginPath();g.moveTo(X(0),Y(y));g.lineTo(X(1),Y(y));g.stroke();}
+    g.strokeStyle='#ffffff30';g.setLineDash([4,4]);
+    for(const y of[0,1]){g.beginPath();g.moveTo(X(0),Y(y));g.lineTo(X(1),Y(y));g.stroke();}g.setLineDash([]);
+    g.fillStyle='#9aa3b5';g.font='12px Pretendard, sans-serif';g.textAlign='right';
+    const kk=K(),a=kk[kfSel.i],bb=kk[kfSel.i+1];
+    g.fillText(fmtV(P0(),bb[1]),PAD.l-6,Y(1)+4);g.fillText(fmtV(P0(),a[1]),PAD.l-6,Y(0)+4);
+    g.textAlign='left';g.fillText(mode==='val'?'값 (시작 → 끝)':'속도',8,18);
+    g.textAlign='center';g.fillText(a[0].toFixed(2)+'초',X(0),H-10);g.fillText(bb[0].toFixed(2)+'초',X(1),H-10);g.fillText('시간 →',X(.5),H-10);
+    if(mode==='val'){
+      g.strokeStyle='#2fd5c5';g.lineWidth=3;g.beginPath();
+      if(hold){g.moveTo(X(0),Y(0));g.lineTo(X(1),Y(0));g.lineTo(X(1),Y(1));}
+      else for(let i=0;i<=120;i++){const x=i/120;const y=kEase(e,x);i?g.lineTo(X(x),Y(y)):g.moveTo(X(x),Y(y));}
+      g.stroke();
+      if(!hold){
+        g.strokeStyle='#ffd25a88';g.lineWidth=1.5;
+        g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(b[0]),Y(b[1]));g.stroke();
+        g.beginPath();g.moveTo(X(1),Y(1));g.lineTo(X(b[2]),Y(b[3]));g.stroke();
+        for(const[hx,hy]of[[b[0],b[1]],[b[2],b[3]]]){g.fillStyle='#ffd25a';g.beginPath();g.arc(X(hx),Y(hy),8,0,7);g.fill();g.strokeStyle='#000a';g.lineWidth=1.5;g.stroke();}
+      }
+    }else{
+      const sp=[];let mx=0;
+      for(let i=0;i<=120;i++){const x=i/120,d=.004;const v=hold?0:(kEase(e,Math.min(1,x+d))-kEase(e,Math.max(0,x-d)))/((Math.min(1,x+d)-Math.max(0,x-d))||1);sp.push(v);mx=Math.max(mx,Math.abs(v));}
+      mx=Math.max(mx,1.2);g.strokeStyle='#ff9f5a';g.lineWidth=3;g.beginPath();
+      sp.forEach((v,i)=>{const px=X(i/120),py=Y(YMIN+(v/mx+.25)*(YMAX-YMIN)/1.5);i?g.lineTo(px,py):g.moveTo(px,py);});g.stroke();
+      g.fillStyle='#9aa3b5';g.textAlign='left';g.fillText('위로 갈수록 빠름 · 점을 끌려면 "값" 그래프로 바꾸세요',X(0)+6,PAD.t-10);
+    }
+    // 재생 위치 표시
+    const cc=C();if(cc){const u=uOf(cc);if(u>=a[0]&&u<=bb[0]){const x=(u-a[0])/((bb[0]-a[0])||1);g.strokeStyle='#ff5a7a';g.lineWidth=1.5;g.beginPath();g.moveTo(X(x),Y(YMIN));g.lineTo(X(x),Y(YMAX));g.stroke();}}
+    // 모드 버튼 영역
+    g.textAlign='right';g.fillStyle=mode==='val'?'#2fd5c5':'#9aa3b5';g.fillText('값',W-58,18);g.fillStyle=mode==='spd'?'#ff9f5a':'#9aa3b5';g.fillText('속도',W-16,18);
+    g.fillStyle='#9aa3b5';g.fillText('|',W-44,18);
+  };
+  // 미리보기 공 (반복 재생)
+  const t0=performance.now();
+  const anim2=()=>{if(!pv.isConnected)return;const g=pv.getContext('2d'),w=pv.width,hh=pv.height,e=cur();
+    g.clearRect(0,0,w,hh);g.fillStyle='#0c0f15';g.fillRect(0,0,w,hh);
+    const cyc=1.6,ph=((performance.now()-t0)/1000)%(cyc+.5),x=Math.min(1,ph/cyc);
+    const lin=x,ey=kEase(e,x);
+    g.strokeStyle='#ffffff18';g.beginPath();g.moveTo(30,hh/2);g.lineTo(w-30,hh/2);g.stroke();
+    const px=v=>30+(w-60)*v;
+    g.fillStyle='#ffffff30';g.beginPath();g.arc(px(lin),hh/2,6,0,7);g.fill();
+    g.fillStyle='#2fd5c5';g.beginPath();g.arc(px(ey),hh/2,11,0,7);g.fill();
+    g.fillStyle='#9aa3b5';g.font='11px Pretendard, sans-serif';g.fillText('흐린 점 = 선형 · 청록 점 = 지금 곡선',8,12);
+    requestAnimationFrame(anim2);};
+  requestAnimationFrame(anim2);
+  // 프리셋
+  const mkPre=()=>{pres.textContent='';const ek=kEaseKind(cur());
+    for(const kk of['lin','in','out','io','fast','snap','back','hold']){const b=h('button',ek===kk?'on':'',KEASE_NAME[kk].replace(/ \(.*\)/,''));
+      b.onclick=()=>{const cc=C(),q=K()[kfSel.i];pushHistory();const e2=kk==='lin'?null:kk;if(ap.checked)setEaseAt(cc,q[0],e2);else setEaseAt(cc,q[0],e2,P0());mkPre();draw();renderTimeline();};pres.append(b);}};
+  mkPre();draw();
+  liveUpd.push(draw);
+  // 드래그
+  let drag=-1;
+  const pos=ev=>{const R=cv.getBoundingClientRect();return[(ev.clientX-R.left)*W/R.width,(ev.clientY-R.top)*H/R.height];};
+  cv.onpointerdown=ev=>{const[mx,my]=pos(ev);
+    if(my<26&&mx>W-80){mode=mx>W-44?'spd':'val';draw();return;}
+    if(mode!=='val'||cur()==='hold')return;
+    const b=kEaseBez(cur());const d0=Math.hypot(mx-X(b[0]),my-Y(b[1])),d1=Math.hypot(mx-X(b[2]),my-Y(b[3]));
+    drag=d0<d1?0:1;if(Math.min(d0,d1)>40){drag=-1;return;}
+    pushHistory();cv.setPointerCapture(ev.pointerId);};
+  cv.onpointermove=ev=>{if(drag<0){const[mx,my]=pos(ev);const b=kEaseBez(cur());cv.style.cursor=mode==='val'&&Math.min(Math.hypot(mx-X(b[0]),my-Y(b[1])),Math.hypot(mx-X(b[2]),my-Y(b[3])))<40?'grab':'default';return;}
+    const[mx,my]=pos(ev),b=kEaseBez(cur());
+    b[drag*2]=+clamp(IX(mx),0,1).toFixed(3);b[drag*2+1]=+clamp(IY(my),YMIN,YMAX).toFixed(3);
+    const cc=C(),q=K()[kfSel.i];if(ap.checked)setEaseAt(cc,q[0],b);else setEaseAt(cc,q[0],b,P0());
+    draw();mkPre();};
+  cv.onpointerup=ev=>{if(drag>=0){drag=-1;renderTimeline();}};
+  cv.ondblclick=()=>{const cc=C(),q=K()[kfSel.i];pushHistory();if(ap.checked)setEaseAt(cc,q[0],null);else setEaseAt(cc,q[0],null,P0());draw();mkPre();renderTimeline();};
+}
+function fmtV(p,v){v=+v;return p==='op'||p==='vol'?Math.round(v)+'%':p==='rot'?Math.round(v)+'°':p==='scale'?Math.round(v)+'%':v.toFixed(1);}
 function panelFx(el){
   const c=byId(selId);if(!need(el,c,'타임라인에서 클립을 선택하면 위치·비율·불투명도·전환·효과를 여기에서 조절합니다. ⏱를 켜면 그 값이 키프레임으로 움직입니다.'))return;
   const id=c.id,C=()=>byId(id);
@@ -1432,6 +1639,7 @@ const FONTS=[['Pretendard','프리텐다드 (쇼츠 자막체)'],['Pretendard Bl
   ['Black Han Sans','검은고딕'],['Do Hyeon','도현'],['Jua','주아'],['Sunflower','해바라기'],['Gugi','구기'],['Bagel Fat One','베이글'],['Moirai One','모이라이'],
   ['Gaegu','개구'],['Nanum Pen Script','나눔손글씨 펜'],['Nanum Brush Script','나눔손글씨 붓'],['Gamja Flower','감자꽃'],['Hi Melody','하이멜로디'],['Poor Story','푸어스토리'],
   ['Single Day','싱글데이'],['Cute Font','귀여운 글꼴'],['Dongle','동글'],['Stylish','스타일리시'],['Yeon Sung','연성'],['East Sea Dokdo','동해독도'],['Dokdo','독도'],['Black And White Picture','흑백사진']];
+const TPL=n=>{const x=TEMPLATES.find(q=>q[0]===n);return x?x[1]:TEMPLATES[2][1];};
 const TEMPLATES=[
   ['숫자 카운터',{y:50,size:150,font:'Pretendard Black',fill:'#ffffff',strokes:[{c:'#000000',w:8}],cnt:{on:true,from:1,to:10,sec:0,delay:0,comma:true,ease:false,roll:true,pre:'',suf:'',pad:0},text:'1'}],
   ['구독자 카운터',{y:50,size:110,font:'Pretendard Black',grad:true,gstops:[{c:'#ffffff',p:0},{c:'#ffe14a',p:100}],gang:90,strokes:[{c:'#000000',w:7}],cnt:{on:true,from:0,to:10000,sec:2.5,delay:0,comma:true,ease:true,roll:false,pre:'구독자 ',suf:'명',pad:0},text:'구독자 0명'}],
@@ -1551,12 +1759,12 @@ function panelGfx(el){
     const cc=h('div','chips');cc.append(b,b2,b3);el.append(cc);return;
   }
   const id=c.id,C=()=>byId(id);
-  {const pv=h('div','livepv'),cn=h('canvas');cn.width=640;cn.height=360;pv.append(cn);
+  {const pv=h('div','livepv'),cn=h('canvas');cn.width=1000;cn.height=210;pv.append(cn);
    const bgs=['#1a1f2b','#ffffff','#7a7f8a','#000000'];let bi=0;pv.title='누르면 배경색이 바뀝니다';cn._bg=bgs[0];
    pv.onclick=()=>{bi=(bi+1)%bgs.length;cn._bg=bgs[bi];};
    previews.push({cn,live:1,mk:()=>{const x=clone(C());x.ain='none';x.aout='none';x.out=3600;x.in=0;x.speed=1;x.anchor='mc';return x;}});
    el.append(pv);}
-  const ta=h('textarea');ta.value=c.text;ta.oninput=()=>{touch('text'+id);setText(C(),ta.value);loadFont(C());renderTimeline();};
+  const ta=h('textarea');ta.value=c.text;ta.oninput=()=>{touch('text'+id);setText(C(),ta.value);loadFont(C());tlSoon();};
   ta.onkeydown=e=>{if(e.key==='Escape'){ta.blur();setTool('V');}};trackSel(ta);
   el.append(row('내용',ta),richBar(()=>ta,id,'richbar'));
   el.append(h('p','hint','글자 일부를 드래그해 선택한 뒤 색·굵게·기울임·밑줄·크기를 바꿀 수 있습니다. 미리보기 화면에서 자막을 두 번 누르면 그 자리에서 바로 고칩니다.'));
@@ -1570,7 +1778,9 @@ function panelGfx(el){
   tx.append(choice('글꼴',FONTS,()=>C().font,v=>{C().font=v;loadFont(C());}),check('굵게',()=>C().bold,v=>{C().bold=v;loadFont(C());}),
     slider('크기',16,300,1,()=>C().size,v=>C().size=v,int),slider('자간',-10,60,1,()=>C().track,v=>C().track=v,int),
     slider('행간',.8,2.5,.05,()=>C().lead,v=>C().lead=v,v=>v.toFixed(2)),
-    choice('문단 정렬',[['left','왼쪽'],['center','가운데'],['right','오른쪽']],()=>C().align,v=>C().align=v));
+    choice('문단 정렬',[['left','왼쪽'],['center','가운데'],['right','오른쪽']],()=>C().align,v=>C().align=v),
+    check('자동 줄바꿈',()=>C().wrap!==false,v=>C().wrap=v?undefined:false));
+  if(c.wrap!==false)tx.append(slider('줄 최대 폭',30,100,1,()=>C().wrapW||90,v=>C().wrapW=v,v=>Math.round(v)+'%'));
   el.append(tx);
   const ap=section('모양');
   ap.append(color('칠',()=>C().fill,v=>C().fill=v));
@@ -1725,8 +1935,12 @@ function renderTools(){const el=$('tools');el.textContent='';
 cv.addEventListener('pointerdown',e=>{
   if(exporting||e.button)return;const r=cv.getBoundingClientRect(),kx=W/r.width,ky=H/r.height;
   const x=(e.clientX-r.left)*kx,y=(e.clientY-r.top)*ky;
-  if(tool==='T'){setPlaying(false);addTextAt(+(x/W*100).toFixed(1),+(y/H*100).toFixed(1),null,true);setTimeout(()=>editOnCanvas(selId,true),40);return;}
   let hit=null;
+  if(tool==='T'){setPlaying(false);
+    for(const tr of [...VT].reverse()){const c=clipAt(tr,Math.min(t,Math.max(0,total-.02)));if(!c||P.off[tr]||c.kind!=='text')continue;const b=boxes.get(c.id);
+      if(b&&x>=b.x-6&&x<=b.x+b.w+6&&y>=b.y-6&&y<=b.y+b.h+6){hit=c;break;}}
+    if(hit){editOnCanvas(hit.id);return;}
+    addTextAt(+(x/W*100).toFixed(1),+(y/H*100).toFixed(1),null,true);const nid=selId;newTextId=nid;setTimeout(()=>editOnCanvas(nid,true),40);return;}
   for(const tr of [...VT].reverse()){const c=clipAt(tr,Math.min(t,Math.max(0,total-.02)));if(!c||P.off[tr])continue;const b=boxes.get(c.id);
     if(b&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h&&(c.kind==='text'||c.id===selId)){hit=c;break;}}
   if(!hit){canvasMarquee(e,x,y,kx,ky);return;}
@@ -1857,7 +2071,14 @@ function probe(file){
     el.src=url;setTimeout(()=>{if(!done){done=true;res(null);}},Math.min(180000,8000+file.size/1048576*120));
   });
 }
-function stripAt(s,tt){const a=s.strip;if(!a||!a.length)return s.thumb;let best=a[0];for(const f of a){if(Math.abs(f.t-tt)<Math.abs(best.t-tt))best=f;}return best.u;}
+const objUrls=new Map();
+function shortUrl(u){if(!u||u.length<200||!u.startsWith('data:'))return u;let o=objUrls.get(u);if(o)return o;
+  try{const i=u.indexOf(','),mime=u.slice(5,u.indexOf(';')),bin=atob(u.slice(i+1)),a=new Uint8Array(bin.length);for(let j=0;j<bin.length;j++)a[j]=bin.charCodeAt(j);
+    o=URL.createObjectURL(new Blob([a],{type:mime}));}catch(e){o=u;}
+  if(objUrls.size>3000){for(const v of objUrls.values())try{URL.revokeObjectURL(v);}catch(e){}objUrls.clear();}
+  objUrls.set(u,o);return o;}
+function stripAt(s,tt){const a=s.strip;if(!a||!a.length)return shortUrl(s.thumb);let lo=0,hi=a.length-1;
+  while(hi-lo>1){const m=(lo+hi)>>1;if(a[m].t<tt)lo=m;else hi=m;}const best=Math.abs(a[lo].t-tt)<=Math.abs(a[hi].t-tt)?a[lo]:a[hi];return shortUrl(best.u);}
 let stripBusy=false;
 async function queueStrips(){
   if(stripBusy)return;stripBusy=true;
@@ -1887,8 +2108,14 @@ async function buildPeaks(s){
     for(let i=0;i<n;i++){let m=0;const a=Math.floor(i*step),b=Math.min(buf.length,Math.floor((i+1)*step));for(const d2 of chs)for(let j=a;j<b;j+=4){const v2=Math.abs(d2[j]);if(v2>m)m=v2;}pk[i]=m;}
     s.peaks=pk;s.peakRate=rate;}catch(e){s.noPeaks=true;}
 }
+const waveCache=new Map();
 function waveCanvas(c,s,d){
   if(!s||!s.peaks)return null;
+  const wkey=[s.id,s.peaks.length,c.in,c.speed,d.toFixed(3),pps,typeof c.vol==='number'?c.vol:'k',RH.A].join('|');
+  const old=waveCache.get(c.id);if(old&&old.key===wkey)return old.el;
+  const el=waveCanvas0(c,s,d);if(waveCache.size>400)waveCache.clear();waveCache.set(c.id,{key:wkey,el});return el;
+}
+function waveCanvas0(c,s,d){
   const w=Math.max(4,Math.min(8000,Math.round(d*pps))),hh=RH.A-22,cv3=document.createElement('canvas');cv3.className='wv';
   const dpr=Math.min(2,window.devicePixelRatio||1);cv3.width=Math.round(w*dpr);cv3.height=Math.round(hh*dpr);cv3.style.width=w+'px';cv3.style.height=hh+'px';
   const g=cv3.getContext('2d');g.scale(dpr,dpr);g.fillStyle=s.type==='audio'?'#7ec8ff':'#7ec8ff';
@@ -2119,8 +2346,8 @@ const ICONS={
   more:'<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18" cy="12" r="1.2"/></svg>'};
 const QUICK=[
   ['import','영상 가져와 시작',()=>createProject({importNow:true})],
-  ['shorts','쇼츠 만들기 9:16',()=>createProject({size:'1080x1920',name:'쇼츠 '+(projects.mine.length+1),template:TEMPLATES[1][1]})],
-  ['kara','노래방 자막',()=>createProject({name:'노래방 자막',template:TEMPLATES[3][1]})],
+  ['shorts','쇼츠 만들기 9:16',()=>createProject({size:'1080x1920',name:'쇼츠 '+(projects.mine.length+1),template:TPL('굵은 쇼츠 자막')})],
+  ['kara','노래방 자막',()=>createProject({name:'노래방 자막',template:TPL('노래방 가사')})],
   ['text','자막 템플릿 둘러보기',async()=>{await createProject({});topTab='gfx';gfxTab='tpl';renderPanels();}],
   ['demo','예시로 둘러보기',()=>createProject({demo:true})],
   ['more','단축키 설정',()=>showKeys()]];
@@ -2794,17 +3021,25 @@ function editOnCanvas(id,selectAll){
   const bar=richBar(()=>ta,id,'');bar.id='cvBar';
   const done=h('button','primary','완료');done.onmousedown=e=>e.preventDefault();done.onclick=()=>endCanvasEdit();bar.append(done);
   document.body.append(ta,bar);
-  const place=()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';const tr=ta.getBoundingClientRect();
+  const bw=Math.max(160,b.w*k+24),bcx=r.left+(b.x+b.w/2)*k,bcy=r.top+(b.y+b.h/2)*k;
+  const place=()=>{ta.style.width=bw+'px';
+    ta.style.left=(c.align==='left'?r.left+b.x*k-12:c.align==='right'?r.left+(b.x+b.w)*k+12-bw:bcx-bw/2)+'px';
+    ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.style.top=(bcy-ta.offsetHeight/2)+'px';const tr=ta.getBoundingClientRect();
     bar.style.left=Math.max(8,Math.min(innerWidth-bar.offsetWidth-8,tr.left))+'px';bar.style.top=Math.max(8,tr.top-bar.offsetHeight-6)+'px';};
   trackSel(ta);
-  ta.oninput=()=>{touch('cvt'+id);const cc=byId(id);if(!cc)return;setText(cc,ta.value);loadFont(cc);place();renderTimeline();};
+  ta.oninput=()=>{touch('cvt'+id);const cc=byId(id);if(!cc)return;setText(cc,ta.value);loadFont(cc);place();tlSoon();};
   ta.onkeydown=e=>{if(e.key==='Escape'||(e.key==='Enter'&&(e.ctrlKey||e.metaKey))){e.preventDefault();e.stopPropagation();endCanvasEdit();}};
   ta.onblur=()=>setTimeout(()=>{if(editId===id&&document.activeElement!==ta&&!bar.contains(document.activeElement))endCanvasEdit();},200);
   place();ta.focus();if(selectAll)ta.select();else ta.setSelectionRange(ta.value.length,ta.value.length);
 }
+let newTextId=null;
 function endCanvasEdit(){
   const ta=$('cvEdit'),bar=$('cvBar');if(ta)ta.remove();if(bar)bar.remove();
-  if(editId){editId=null;if(cur){renderPanels();renderTimeline();}}
+  if(editId){const id=editId;editId=null;
+    const c=byId(id);
+    if(c&&!String(c.text||'').trim()){P.clips=P.clips.filter(x=>x.id!==id);selIds.delete(id);if(selId===id)selId=null;relayout();toast('빈 자막은 지웠습니다.');}
+    if(tool==='T')setTool('V');newTextId=null;
+    if(cur){renderPanels();renderTimeline();}}
 }
 addEventListener('resize',()=>{if(editId)endCanvasEdit();});
 /* 화면 9곳 고정 */
@@ -2890,6 +3125,18 @@ function showProps(c){
     o.onclick=()=>{closeModal();selectOnly(c.id);topTab=c.kind==='text'?'gfx':c.kind==='audio'?'snd':'fx';gfxTab='edit';afterSelect();};x.onclick=closeModal;a.append(o,x);b.append(a);});
 }
 /* 우클릭 메뉴 */
+function kfMenu(id,u){
+  const c=byId(id);if(!c)return[];
+  const cur=(()=>{for(const p of ANIM)if(isAnim(c,p)){const q=c[p].k.find(z=>Math.abs(z[0]-u)<.021);if(q)return kEaseKind(q[2]);}return'lin';})();
+  const set=e=>{const cc=byId(id);if(!cc)return;pushHistory();const n=setEaseAt(cc,u,e);renderTimeline();renderPanels();toast(`키프레임 ${n}개 → ${KEASE_NAME[e==null?'lin':e]}`);};
+  const it=(k,key)=>({n:(cur===k?'✓ ':'　')+KEASE_NAME[k],k:key,f:()=>set(k==='lin'?null:k)});
+  return[{head:'다음 키프레임까지 움직이는 방식'},it('lin'),it('in'),it('out'),it('io'),it('fast'),it('snap'),it('back'),it('hold'),null,
+    {n:'곡선 직접 조절… (애니메이션 컨트롤)',f:()=>{topTab='kfa';renderPanels();}},
+    {n:'여기로 이동',f:()=>{const cc=byId(id);if(cc)seek(cc.start+u);}},
+    {n:'이 시점 키프레임 삭제',cls:'danger',f:()=>{const cc=byId(id);if(!cc)return;pushHistory();
+      for(const p of ANIM)if(isAnim(cc,p)){const k=cc[p].k;const i=k.findIndex(z=>Math.abs(z[0]-u)<.021);if(i>=0){if(k.length>1)k.splice(i,1);else cc[p]=k[0][1];}}
+      kfSel=null;renderTimeline();renderPanels();}}];
+}
 function ctxMenu(e,items){
   e.preventDefault();const m=$('menu');m.textContent='';let lastSep=true;
   for(const it of items){
