@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "컷룸 스튜디오(썸네일 · 이미지 편집 · 이미지 애니메이션) 추가, 지금 장면으로 썸네일 만들기, 스튜디오 결과를 타임라인으로 바로 보내기"
+    "notes": "큰 영상도 끊김 없이(미디어 지연 로딩), 축소하면 트랙 전체가 한눈에, 자막 설정 중 실시간 미리보기"
   }
 }
