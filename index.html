@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>컷룸 · 영상 편집기 다운로드</title>
+<meta name="description" content="브라우저와 Windows에서 쓰는 무료 영상 편집기 컷룸. 타임라인 컷 편집, 노래방·쇼츠 자막, 실시간 공동 작업.">
+<meta property="og:title" content="컷룸 영상 편집기">
+<meta property="og:description" content="자르고 붙이고, 노래방·쇼츠 자막까지. 친구와 실시간으로 함께 편집하세요.">
+<meta property="og:image" content="media/poster.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+/* 한 화면 소개 → 영상 → 기능 3개 → 다운로드 상세 → 바뀐 점. 컷룸 앱과 같은 어두운 회청색과 민트 강조색. */
+:root{
+  color-scheme:dark;
+  --bg:#111318;--panel:#1c1f27;--panel2:#262a35;--line:#343a49;
+  --text:#f2f4f8;--dim:#aab1c1;--accent:#2fd5c5;--accent2:#4f7dff;--ink:#04201d;
+  --display:"Black Han Sans","IBM Plex Sans KR",sans-serif;--body:"IBM Plex Sans KR",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.65 var(--body)}
+a{color:var(--accent)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+nav{display:flex;align-items:center;gap:18px;padding:18px 0}
+nav .brand{font:28px var(--display);margin-right:auto;letter-spacing:.02em}
+nav .brand b{color:var(--accent);font-weight:400}
+nav a{color:var(--dim);text-decoration:none;font-size:15px}
+nav a:hover{color:var(--text)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:40px;align-items:center;padding:28px 0 56px}
+.hero h1{font:clamp(40px,6vw,68px)/1.08 var(--display);margin:0 0 16px;text-wrap:balance}
+.hero h1 span{background:linear-gradient(100deg,#25f0d8,#4f7dff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--dim);margin:0 0 26px;max-width:34em;font-size:17px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:12px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--text);background:var(--panel)}
+.btn.primary{background:linear-gradient(110deg,#25f0d8,#22d0e6 50%,#4f7dff);color:#061016;border:0}
+.btn small{display:block;font-weight:400;font-size:12.5px;opacity:.8}
+.btn:hover{filter:brightness(1.06)}
+.meta{font-size:13.5px;color:var(--dim);margin-top:14px;font-variant-numeric:tabular-nums}
+.video{border-radius:16px;overflow:hidden;background:#000;box-shadow:0 0 0 1px var(--line),0 30px 80px -30px #000}
+.video video{display:block;width:100%;aspect-ratio:16/9}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section h2{font:32px var(--display);margin:0 0 8px;font-weight:400}
+section .lead{color:var(--dim);margin:0 0 28px}
+.feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.feat{background:var(--panel);border-radius:14px;overflow:hidden}
+.feat img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.feat div{padding:16px 18px 20px}
+.feat h3{margin:0 0 6px;font-size:18px}
+.feat p{margin:0;color:var(--dim);font-size:15px}
+.list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 32px;padding:0;margin:0;list-style:none}
+.list li{padding:10px 0;border-bottom:1px solid var(--line);color:var(--dim)}
+.list li b{color:var(--text);font-weight:600;margin-right:8px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding:0;margin:0;list-style:none}
+.steps li{background:var(--panel);border-radius:14px;padding:20px}
+.steps li::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--ink);font-weight:700;margin-bottom:10px}
+.steps h3{margin:0 0 6px;font-size:17px}
+.steps p{margin:0;color:var(--dim);font-size:14.5px}
+.log{background:var(--panel);border-radius:14px;padding:20px 24px}
+.log h3{margin:0 0 6px;font-size:17px}
+.log h3 span{font-size:13px;color:var(--dim);font-weight:400;margin-left:8px}
+.log ul{margin:0;padding-left:20px;color:var(--dim)}
+footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
+@media (max-width:860px){.hero{grid-template-columns:1fr}.feats,.steps{grid-template-columns:1fr}.list{grid-template-columns:1fr}nav a.hide{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand"><b>컷</b>룸</div>
+    <a class="hide" href="#features">기능</a>
+    <a class="hide" href="#download">다운로드</a>
+    <a class="hide" href="#changes">바뀐 점</a>
+    <a href="app/">웹에서 열기</a>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>자르고 붙이고,<br><span>자막까지</span> 한 번에.</h1>
+      <p>컷룸은 브라우저와 Windows에서 쓰는 무료 영상 편집기입니다. 타임라인 컷 편집, 노래방·쇼츠 자막 템플릿, 색 보정과 울림 효과, 그리고 친구와 실시간 공동 작업까지 할 수 있습니다.</p>
+      <div class="btns">
+        <a class="btn primary" id="dl" href="download/CutRoom-Windows.zip" download>⬇ Windows용 다운로드<small id="dlMeta">v1.1.0 · 1.5MB · Windows 10/11</small></a>
+        <a class="btn" href="app/">🌐 웹에서 바로 쓰기<small>설치 없이 Chrome·Edge에서</small></a>
+      </div>
+      <div class="meta">설치 과정 없이 압축을 풀고 CutRoom.exe를 실행하면 됩니다. 새 버전은 앱이 알아서 업데이트합니다.</div>
+    </div>
+    <div class="video"><video src="media/cutroom-promo.mp4" poster="media/poster.jpg" controls playsinline preload="metadata"></video></div>
+  </header>
+
+  <section id="features">
+    <h2>무엇을 할 수 있나요</h2>
+    <p class="lead">프리미어 프로처럼 익숙한 화면 구성에, 쇼츠 시대에 맞는 자막 기능을 더했습니다.</p>
+    <div class="feats">
+      <article class="feat"><img src="media/shot-edit.jpg" alt="타임라인에서 클립을 자르고 옮기는 화면" loading="lazy"><div>
+        <h3>타임라인 컷 편집</h3><p>V1~V3, A1~A3 트랙에서 자르기(E), 잔물결 삭제, 영상·소리 분리, 키프레임, 10가지 화면 전환을 씁니다.</p></div></article>
+      <article class="feat"><img src="media/shot-templates.jpg" alt="자막 템플릿을 미리 보며 고르는 화면" loading="lazy"><div>
+        <h3>노래방 · 쇼츠 자막</h3><p>글자가 차오르는 노래방 자막, 굵은 쇼츠 자막, 자막바 템플릿을 미리 보고 넣습니다. 글자 일부만 색을 바꿀 수도 있습니다.</p></div></article>
+      <article class="feat"><img src="media/shot-collab.jpg" alt="공동 작업자가 고친 자막이 바로 반영된 화면" loading="lazy"><div>
+        <h3>실시간 공동 작업</h3><p>컷룸 아이디로 친구를 초대하면 같은 타임라인을 함께 고칩니다. 서로의 마우스가 보이고, 영상 파일은 컴퓨터끼리 바로 전송됩니다.</p></div></article>
+    </div>
+  </section>
+
+  <section id="download">
+    <h2>설치 방법</h2>
+    <p class="lead">Windows 10/11에 기본으로 들어 있는 Edge WebView2로 돌아가서 파일이 1.5MB밖에 되지 않습니다.</p>
+    <ol class="steps">
+      <li><h3>압축 풀기</h3><p>받은 CutRoom-Windows.zip의 압축을 원하는 폴더에 풉니다.</p></li>
+      <li><h3>CutRoom.exe 실행</h3><p>"Windows의 PC 보호" 창이 뜨면 "추가 정보" → "실행"을 누르세요. 서명되지 않은 개인 제작 앱이라 나오는 경고입니다.</p></li>
+      <li><h3>로그인하고 시작</h3><p>첫 화면에서 회원가입하면 웹과 앱 어디서든 같은 작품을 열 수 있습니다. 로그인 없이도 쓸 수 있습니다.</p></li>
+    </ol>
+    <ul class="list" style="margin-top:28px">
+      <li><b>운영체제</b>Windows 10 / 11 (64비트)</li>
+      <li><b>필요한 것</b>Edge WebView2 (대부분 기본 설치됨)</li>
+      <li><b>내보내기</b>MP4(H.264) · WebM, 최대 4K</li>
+      <li><b>업데이트</b>앱을 켤 때 자동 확인</li>
+    </ul>
+  </section>
+
+  <section id="changes">
+    <h2>바뀐 점</h2>
+    <div class="log">
+      <h3>v1.1.0 <span>2026년 11월 21일</span></h3>
+      <ul>
+        <li>컷룸 계정으로 회원가입·로그인, 아이디로 공동 작업 초대</li>
+        <li>공동 작업자의 마우스가 미리보기와 타임라인에 보임</li>
+        <li>굵은 쇼츠 자막체(프리텐다드)와 "굵은 쇼츠 자막" 템플릿</li>
+        <li>통통 튀기·확대 애니메이션이 자기 자리에서 나오도록 수정</li>
+        <li>앱 자동 업데이트</li>
+      </ul>
+    </div>
+  </section>
+</div>
+<footer><div class="wrap">컷룸 · 만든 사람 PixelNeon · <a href="https://github.com/yoonslog/cutroom">GitHub</a></div></footer>
+<script>
+// 최신 버전 정보를 업데이트 목록에서 읽어 버튼에 표시
+fetch('update/manifest.json',{cache:'no-store'}).then(r=>r.json()).then(m=>{const e=document.getElementById('dlMeta');if(e&&m.version)e.textContent=`v${m.version} · Windows 10/11`;}).catch(()=>{});
+</script>
+</body>
+</html>

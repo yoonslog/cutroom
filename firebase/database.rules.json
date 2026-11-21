@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "usernames": { "$name": { ".read": true, ".write": "auth != null && !data.exists() && newData.val() === auth.uid" } },
+    "profiles": { "$uid": { ".read": "auth != null", ".write": "auth != null && auth.uid === $uid" } },
+    "userProjects": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$pid": { ".write": "auth != null && (auth.uid === $uid || root.child('projects/'+$pid+'/members/'+auth.uid).exists() || root.child('projects/'+$pid+'/owner').val() === auth.uid)" }
+      }
+    },
+    "projects": {
+      "$pid": {
+        ".read": "auth != null && data.child('members/'+auth.uid).exists()",
+        ".write": "auth != null && (!data.exists() || data.child('members/'+auth.uid).exists())"
+      }
+    },
+    "cursors": {
+      "$pid": {
+        ".read": "auth != null && root.child('projects/'+$pid+'/members/'+auth.uid).exists()",
+        "$uid": { ".write": "auth != null && auth.uid === $uid" }
+      }
+    }
+  }
+}

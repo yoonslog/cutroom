@@ -1,0 +1,6 @@
+{
+  "applicationId": "kr.cutroom.app",
+  "version": "1.1.0",
+  "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
+  "data": { "notes": "컷룸 계정(회원가입·로그인), 공동 작업자 마우스 보기, 굵은 쇼츠 자막체(프리텐다드), 애니메이션이 제자리에서 나오도록 수정, 자동 업데이트" }
+}
