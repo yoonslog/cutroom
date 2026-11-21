@@ -3,6 +3,6 @@
   "version": "1.4.1",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "큰 영상도 끊김 없이(미디어 지연 로딩), 축소하면 트랙 전체가 한눈에, 자막 설정 중 실시간 미리보기"
+    "notes": "Windows 설치 파일 추가, 새 버전 자동 받기, 큰 영상 끊김 해결, 전체 보기 축소, 자막 실시간 미리보기"
   }
 }
