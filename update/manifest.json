@@ -1,6 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
-  "data": { "notes": "요소(진행 바·도형·아이콘 22종), 1씩 올라가는 숫자 카운터, 여러 색 그라데이션, 화면 배치(패널 크기·위치 조절), V트랙 5개" }
+  "data": {
+    "notes": "타임라인 새 디자인(트랙 헤더·필름스트립·파형·마커·레벨 미터), 고해상도 미리보기 텍스트"
+  }
 }
