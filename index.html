@@ -43,7 +43,7 @@ nav a:hover{color:var(--text)}
 section{padding:56px 0;border-top:1px solid var(--line)}
 section h2{font:32px var(--display);margin:0 0 8px;font-weight:400}
 section .lead{color:var(--dim);margin:0 0 28px}
-.feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .feat{background:var(--panel);border-radius:14px;overflow:hidden}
 .feat img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 .feat div{padding:16px 18px 20px}
@@ -72,6 +72,7 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
     <a class="hide" href="#features">기능</a>
     <a class="hide" href="#download">다운로드</a>
     <a class="hide" href="#changes">바뀐 점</a>
+    <a class="hide" href="studio/">이미지 편집기</a>
     <a href="app/">웹에서 열기</a>
   </nav>
 
@@ -80,8 +81,9 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
       <h1>자르고 붙이고,<br><span>자막까지</span> 한 번에.</h1>
       <p>컷룸은 브라우저와 Windows에서 쓰는 무료 영상 편집기입니다. 타임라인 컷 편집, 노래방·쇼츠 자막 템플릿, 색 보정과 울림 효과, 그리고 친구와 실시간 공동 작업까지 할 수 있습니다.</p>
       <div class="btns">
-        <a class="btn primary" id="dl" href="download/CutRoom-Windows.zip" download>⬇ Windows용 다운로드<small id="dlMeta">v1.2.0 · 1.5MB · Windows 10/11</small></a>
+        <a class="btn primary" id="dl" href="download/CutRoom-Windows.zip" download>⬇ Windows용 다운로드<small id="dlMeta">v1.4.0 · 3.9MB · Windows 10/11</small></a>
         <a class="btn" href="app/">🌐 웹에서 바로 쓰기<small>설치 없이 Chrome·Edge에서</small></a>
+        <a class="btn" href="studio/">🖼 썸네일 · 이미지 편집기<small>컷룸 스튜디오 · 애니메이션 GIF</small></a>
       </div>
       <div class="meta">설치 과정 없이 압축을 풀고 CutRoom.exe를 실행하면 됩니다. 새 버전은 앱이 알아서 업데이트합니다.</div>
     </div>
@@ -96,6 +98,8 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
         <h3>타임라인 컷 편집</h3><p>V1~V3, A1~A3 트랙에서 자르기(E), 잔물결 삭제, 영상·소리 분리, 키프레임, 10가지 화면 전환을 씁니다.</p></div></article>
       <article class="feat"><img src="media/shot-templates.jpg" alt="자막 템플릿을 미리 보며 고르는 화면" loading="lazy"><div>
         <h3>노래방 · 쇼츠 자막</h3><p>글자가 차오르는 노래방 자막, 굵은 쇼츠 자막, 자막바 템플릿을 미리 보고 넣습니다. 글자 일부만 색을 바꿀 수도 있습니다.</p></div></article>
+      <article class="feat"><img src="media/shot-studio.jpg" alt="컷룸 스튜디오에서 썸네일 글자와 움직임을 만드는 화면" loading="lazy"><div>
+        <h3>썸네일 · 이미지 애니메이션</h3><p>컷룸 스튜디오에서 템플릿으로 썸네일을 만들고, 사진 배경을 지우고, 글자에 움직임을 넣어 GIF·영상으로 저장하거나 타임라인에 바로 넣습니다.</p></div></article>
       <article class="feat"><img src="media/shot-collab.jpg" alt="공동 작업자가 고친 자막이 바로 반영된 화면" loading="lazy"><div>
         <h3>실시간 공동 작업</h3><p>컷룸 아이디로 친구를 초대하면 같은 타임라인을 함께 고칩니다. 서로의 마우스가 보이고, 영상 파일은 컴퓨터끼리 바로 전송됩니다.</p></div></article>
     </div>
@@ -120,6 +124,23 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
   <section id="changes">
     <h2>바뀐 점</h2>
     <div class="log" style="margin-bottom:14px">
+      <h3>v1.4.0 <span>2026년 11월 21일</span></h3>
+      <ul>
+        <li>컷룸 스튜디오: 썸네일 · 이미지 편집기 (레이어, 글자 스타일 12종, 이중 외곽선, 강조 단어 색, 도형 15종, 스티커)</li>
+        <li>사진 배경 지우기, 스티커 외곽선, 색 보정, 모양 자르기, 유튜브 시간 표시 안전 영역, 작게 보기</li>
+        <li>이미지 애니메이션: 등장 · 반복 · 퇴장 움직임, 타임라인, GIF · MP4 · WebM으로 저장</li>
+        <li>유튜브 · 쇼츠 · 인스타 · 채널 아트 · 애니메이션 템플릿 20종</li>
+        <li>편집기에서 📸 지금 장면으로 썸네일 만들기, 스튜디오 결과를 타임라인으로 바로 보내기</li>
+      </ul>
+    </div>
+    <div class="log" style="margin-bottom:14px">
+      <h3>v1.3.0 <span>2026년 11월 21일</span></h3>
+      <ul>
+        <li>프로 편집기 스타일 타임라인: 타임코드, 트랙 잠금·표시·M/S, 필름스트립, 오디오 파형, 마커</li>
+        <li>dB / LUFS 레벨 미터, 고해상도 미리보기 글자</li>
+      </ul>
+    </div>
+    <div class="log" style="margin-bottom:14px">
       <h3>v1.2.0 <span>2026년 11월 21일</span></h3>
       <ul>
         <li>요소: 진행 바·로딩 바·자막 배경 바·강조 밑줄·도형, 아이콘 22종</li>
@@ -130,7 +151,6 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
       </ul>
     </div>
     <div class="log">
-<li><b>v1.3.0</b> — 프로 편집기 스타일 타임라인(타임코드·트랙 잠금/표시/M·S·필름스트립·오디오 파형·마커), dB/LUFS 레벨 미터, 고해상도 미리보기, 1080p 고화질 홍보 영상</li>
       <h3>v1.1.0 <span>2026년 11월 21일</span></h3>
       <ul>
         <li>컷룸 계정으로 회원가입·로그인, 아이디로 공동 작업 초대</li>

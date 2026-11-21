@@ -272,6 +272,10 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
   .rowB{grid-template-columns:1fr 60px!important}#app{grid-template-rows:auto auto 0 auto!important}.rowB #projFrame{grid-column:1/-1;height:230px}.rowB #tlFrame{grid-column:1;grid-row:2;height:330px}
   .rowB #tools{grid-row:2;grid-column:2}
 }
+#studioWrap{position:fixed;inset:0;z-index:300;background:#14161b;display:flex;flex-direction:column}
+#studioWrap .sbar{height:34px;flex:0 0 34px;display:flex;align-items:center;gap:10px;padding:0 10px;background:#0c0e12;border-bottom:1px solid var(--line);font-size:13px}
+#studioWrap .sbar b{color:var(--accent)}
+#studioWrap iframe{flex:1;border:0;width:100%;min-height:0;background:#14161b}
 </style>
 </head>
 <body>
@@ -291,6 +295,7 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
     <span id="who"></span>
     <button id="bLogin" hidden>👤 로그인</button>
     <button id="bJoin" hidden>🖧 서버 참여</button>
+    <button id="openStudio" title="썸네일 · 이미지 편집 · 이미지 애니메이션">🖼 이미지 편집기</button>
     <button id="openFile">📁 프로젝트 열기</button>
     <input id="projFile" type="file" accept=".json,application/json" hidden>
   </div>
@@ -326,6 +331,7 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
   <button id="redo" title="Ctrl+Shift+Z">↷</button>
   <span class="sp"></span>
   <button id="bImport" title="Ctrl+I">가져오기</button>
+  <button id="bStudio" title="컷룸 스튜디오: 썸네일 · 이미지 · 이미지 애니메이션을 만들어 타임라인에 넣습니다">🖼 이미지 편집기</button>
   <button id="bCollab">공동 작업</button>
   <button id="bLayout" title="패널 위치와 크기">🧩 화면 배치</button>
   <button id="bKeys">⌨ 단축키</button>
@@ -358,6 +364,7 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
         <button id="play" class="primary" title="Space">▶ 재생</button>
         <button id="stepF" title="→">▶</button>
         <button id="toEnd" title="End">⏭</button>
+        <button id="bGrabThumb" title="지금 장면으로 썸네일 만들기">📸 썸네일</button>
         <span class="tc num"><span id="tcTotal">00:00:00</span></span>
       </div>
     </div>
@@ -422,7 +429,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const CUTROOM_VERSION='1.3.0';
+const CUTROOM_VERSION='1.4.0';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -3025,6 +3032,47 @@ applyLayout();
   }
   listen();
 })();
+
+/* ================= 컷룸 스튜디오(이미지 편집기) 연결 ================= */
+const STUDIO_URL=window.CUTROOM_STUDIO_URL||(IS_APP?'studio/index.html':'../studio/index.html');
+let studio=null;
+function openStudio(o){
+  o=o||{};if(studio)return;
+  const w=document.createElement('div');w.id='studioWrap';
+  const bar=document.createElement('div');bar.className='sbar';
+  const t=document.createElement('span');t.innerHTML='<b>컷룸 스튜디오</b> · 썸네일 · 이미지 · 이미지 애니메이션'+(cur?' — "🎞 컷룸으로 보내기"를 누르면 지금 작품의 재생 헤드 위치에 들어갑니다':'');
+  const sp=document.createElement('span');sp.style.flex='1';
+  const x=document.createElement('button');x.textContent='✕ 닫기';x.onclick=closeStudio;
+  bar.append(t,sp,x);
+  const fr=document.createElement('iframe');fr.src=STUDIO_URL+(cur?'?embed=1':'');fr.allow='clipboard-read; clipboard-write';
+  w.append(bar,fr);document.body.append(w);studio={w,fr,init:o.init||null};
+}
+function closeStudio(){if(!studio)return;studio.w.remove();studio=null;}
+function grabFrameBlob(){
+  const was=playing;playing=true;try{draw();}finally{playing=was;}
+  const c=document.createElement('canvas');c.width=P.w||W;c.height=P.h||H;c.getContext('2d').drawImage(cv,0,0,c.width,c.height);draw();
+  return new Promise(r=>c.toBlob(r,'image/png'));
+}
+addEventListener('message',async e=>{
+  if(!studio||e.source!==studio.fr.contentWindow)return;const m=e.data||{};
+  if(m.type==='cutroom-studio-ready'&&studio.init){studio.fr.contentWindow.postMessage(studio.init,'*');studio.init=null;return;}
+  if(m.type==='cutroom-studio-export'&&m.blob){
+    if(!cur){toast('작품을 연 상태에서 보내 주세요.');return;}
+    const f=new File([m.blob],`${m.name||'스튜디오'}-${Date.now().toString(36).slice(-4)}.${m.ext||'png'}`,{type:m.blob.type});
+    closeStudio();const at=t;
+    await importFiles([f]);
+    const s=Object.values(S).filter(x=>x.fname===f.name).pop();if(!s)return;
+    if(!P.clips.some(c=>c.src===s.id)){
+      pushHistory();const dur=s.type==='video'?s.duration:4;
+      const tr=VT.slice(1).find(x=>!P.clips.some(c=>c.tr===x&&c.start<at+dur-1e-3&&end(c)>at+1e-3))||'V5';
+      const c=mkClip(s.id,tr,at);if(s.type==='video')c.mute=true;P.clips.push(c);relayout();selectOnly&&selectOnly(c.id);refresh(true);
+    }
+    toast(s.type==='video'?'스튜디오에서 만든 애니메이션을 타임라인에 넣었습니다.':'스튜디오에서 만든 이미지를 타임라인에 넣었습니다.');
+  }
+});
+$('openStudio').onclick=()=>openStudio();
+$('bStudio').onclick=()=>openStudio();
+$('bGrabThumb').onclick=async()=>{if(!cur)return;const b=await grabFrameBlob();openStudio({init:{type:'cutroom-studio-init',image:b,w:P.w||W,h:P.h||H,name:(cur.name||'작품')+' 썸네일'}});};
 </script>
 </body>
 </html>
