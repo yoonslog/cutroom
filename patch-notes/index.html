@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>컷룸 패치 노트 · 업데이트 내역</title>
+<title>Velo 패치 노트 · 업데이트 내역</title>
 <style>
-/* 한 화면 소개 → 영상 → 기능 3개 → 다운로드 상세 → 바뀐 점. 컷룸 앱과 같은 어두운 회청색과 민트 강조색. */
+/* 한 화면 소개 → 영상 → 기능 3개 → 다운로드 상세 → 바뀐 점. Velo 앱과 같은 어두운 회청색과 민트 강조색. */
 :root{
   color-scheme:dark;
   --bg:#111318;--panel:#1c1f27;--panel2:#262a35;--line:#343a49;
@@ -63,11 +63,20 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
 .pn ul{margin:0;padding-left:20px;color:var(--dim);line-height:1.7}
 .toc{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 26px}.toc a{padding:5px 10px;border-radius:8px;background:var(--panel);text-decoration:none;font-size:13px}
 </style></head><body><div class="wrap">
-<nav><div class="brand"><a href="../" style="color:inherit;text-decoration:none"><b>컷</b>룸</a></div><a class="hide" href="../#download">다운로드</a><a href="../app/">웹에서 열기</a></nav>
+<nav><div class="brand"><a href="../" style="color:inherit;text-decoration:none"><b>Ve</b>lo</a></div><a class="hide" href="../#download">다운로드</a><a href="../app/">웹에서 열기</a></nav>
 <h1 style="margin:30px 0 4px">패치 노트 · 업데이트 내역</h1>
 <p style="color:var(--dim);margin:0">버전마다 바뀐 점을 짧은 영상과 함께 정리했습니다. 설치한 앱은 새 버전을 자동으로 받습니다.</p>
-<div class="toc"><a href="#v1.5.0">v1.5.0</a><a href="#v1.4.4">v1.4.4</a><a href="#v1.4.3">v1.4.3</a><a href="#v1.4.2">v1.4.2</a><a href="#v1.4.1">v1.4.1</a><a href="#v1.4.0">v1.4.0</a><a href="#v1.3.0">v1.3.0</a><a href="#v1.2.0">v1.2.0</a><a href="#v1.1.0">v1.1.0</a></div>
-<article class="pn" id="v1.5.0">
+<div class="toc"><a href="#v1.5.1">v1.5.1</a><a href="#v1.5.0">v1.5.0</a><a href="#v1.4.4">v1.4.4</a><a href="#v1.4.3">v1.4.3</a><a href="#v1.4.2">v1.4.2</a><a href="#v1.4.1">v1.4.1</a><a href="#v1.4.0">v1.4.0</a><a href="#v1.3.0">v1.3.0</a><a href="#v1.2.0">v1.2.0</a><a href="#v1.1.0">v1.1.0</a></div>
+<article class="pn" id="v1.5.1">
+  <div class="pnh"><span class="ver">v1.5.1</span><h2>Velo 리브랜딩 · 새 애니메이션 · 키프레임 토글</h2><span class="date">2026년 11월 22일</span></div>
+  <ul>
+    <li>편집기 이름을 <b>Velo</b>로 변경, 새 로고 적용</li>
+    <li>새 등장/퇴장 애니메이션 6종: <b>출렁(웨이브)</b>(프리미어프로 파도 비틀기와 같은 효과), <b>글리치</b>, <b>두근두근</b>, <b>고무줄</b>, <b>뒤집기</b>, <b>뚝 떨어짐</b></li>
+    <li>출렁 자막, 글리치 제목, 두근 강조, 고무줄 등장, 뚝 떨어짐 등 새 애니메이션 템플릿 5종 추가</li>
+    <li>애니메이션 탭에 <b>"키프레임으로 보기" 토글</b> — 켜면 타임라인에서 노란 애니메이션 바 대신 키프레임 ◆ 표시</li>
+    <li>타임라인 자막 클립에 <b>텍스트 미리보기</b> 표시</li>
+  </ul>
+</article><article class="pn" id="v1.5.0">
   <div class="pnh"><span class="ver">v1.5.0</span><h2>새 템플릿 · 효과음 · 앱 내 패치 노트</h2><span class="date">2026년 11월 22일</span></div>
   <ul>
     <li>마인크래프트 유튜브 스타일 자막 템플릿 추가: <b>마크 서버 자막</b>(굵은 흰 글씨 + 검은 테두리), <b>마크 큰 제목</b>(화면 중앙 대형), <b>마크 대사 자막</b>(좌측 정렬 대사), <b>마크 테마 제목</b>(초록 상단), <b>마크 경고 자막</b>(빨간 흔들림)</li>
@@ -115,10 +124,10 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
         <li>자막 편집 탭에 실시간 미리보기 — 색 · 글꼴 · 선 · 그림자를 바꾸면 바로 보이고, 누르면 배경색이 바뀝니다</li>
       </ul>
 </article><article class="pn" id="v1.4.0">
-  <div class="pnh"><span class="ver">v1.4.0</span><h2>컷룸 스튜디오 (이미지 편집 · 애니메이션)</h2><span class="date">2026년 11월 21일</span></div>
+  <div class="pnh"><span class="ver">v1.4.0</span><h2>Velo Studio (이미지 편집 · 애니메이션)</h2><span class="date">2026년 11월 21일</span></div>
   <video src="../media/patch/v140.mp4" poster="../media/patch/v140.jpg" controls muted loop playsinline preload="none"></video>
   <ul>
-        <li>컷룸 스튜디오: 썸네일 · 이미지 편집기 (레이어, 글자 스타일 12종, 이중 외곽선, 강조 단어 색, 도형 15종, 스티커)</li>
+        <li>Velo Studio: 썸네일 · 이미지 편집기 (레이어, 글자 스타일 12종, 이중 외곽선, 강조 단어 색, 도형 15종, 스티커)</li>
         <li>사진 배경 지우기, 스티커 외곽선, 색 보정, 모양 자르기, 유튜브 시간 표시 안전 영역, 작게 보기</li>
         <li>이미지 애니메이션: 등장 · 반복 · 퇴장 움직임, 타임라인, GIF · MP4 · WebM으로 저장</li>
         <li>유튜브 · 쇼츠 · 인스타 · 채널 아트 · 애니메이션 템플릿 20종</li>
@@ -145,14 +154,14 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
   <div class="pnh"><span class="ver">v1.1.0</span><h2>계정 · 공동 작업 · 쇼츠 자막</h2><span class="date">2026년 11월 21일</span></div>
   <video src="../media/patch/v110.mp4" poster="../media/patch/v110.jpg" controls muted loop playsinline preload="none"></video>
   <ul>
-        <li>컷룸 계정으로 회원가입·로그인, 아이디로 공동 작업 초대</li>
+        <li>Velo 계정으로 회원가입·로그인, 아이디로 공동 작업 초대</li>
         <li>공동 작업자의 마우스가 미리보기와 타임라인에 보임</li>
         <li>굵은 쇼츠 자막체(프리텐다드)와 "굵은 쇼츠 자막" 템플릿</li>
         <li>통통 튀기·확대 애니메이션이 자기 자리에서 나오도록 수정</li>
         <li>앱 자동 업데이트</li>
       </ul>
 </article>
-<footer>컷룸 · 만든 사람 PixelNeon · <a href="https://github.com/yoonslog/cutroom">GitHub</a></footer>
+<footer>Velo · 만든 사람 PixelNeon · <a href="https://github.com/yoonslog/cutroom">GitHub</a></footer>
 </div>
 <script>document.querySelectorAll('.pn video').forEach(v=>{const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){v.preload='auto';v.play().catch(()=>{});}else v.pause();}),{threshold:.5});io.observe(v);});</script>
 </body></html>

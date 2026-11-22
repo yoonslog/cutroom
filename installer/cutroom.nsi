@@ -4,7 +4,7 @@ Unicode true
 
 !define APPNAME "컷룸"
 !define APPEXE "CutRoom.exe"
-!define APPVER "1.5.0"
+!define APPVER "1.5.1"
 !define PUBLISHER "컷룸"
 !define SITE "https://yoonslog.github.io/cutroom/"
 !define REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\CutRoom"

@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "새 템플릿 13종, 효과음 12종, 배경음 4종 추가, 앱 내 패치 노트"
+    "notes": "Velo 리브랜딩, 새 애니메이션 6종, 키프레임 토글, 자막 미리보기"
   }
 }

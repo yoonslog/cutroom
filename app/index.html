@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>컷룸 영상 편집기</title>
+<title>Velo 영상 편집기</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@500;800&family=Black+Han+Sans&family=Jua&family=Do+Hyeon&family=Gaegu:wght@700&family=Nanum+Pen+Script&family=Gothic+A1:wght@400;800&family=Nanum+Gothic:wght@400;800&family=Nanum+Myeongjo:wght@400;800&family=Gowun+Dodum&family=Gowun+Batang:wght@400;700&family=Sunflower:wght@500;700&family=Gugi&family=Dongle:wght@400;700&family=Hi+Melody&family=Poor+Story&family=Single+Day&family=Stylish&family=Song+Myung&family=Yeon+Sung&family=East+Sea+Dokdo&family=Cute+Font&family=Gamja+Flower&family=Nanum+Brush+Script&family=Orbit&family=Hahmlet:wght@400;800&family=Dokdo&family=Bagel+Fat+One&family=Diphylleia&family=Black+And+White+Picture&family=Moirai+One&display=swap" rel="stylesheet">
 <style>
@@ -302,7 +303,7 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
 <!-- ================= 홈 ================= -->
 <section id="home">
   <div class="homeTop">
-    <div class="brand"><b>컷</b>룸</div>
+    <div class="brand"><img src="favicon.png" alt="" style="height:22px;vertical-align:middle;margin-right:4px"><b>Ve</b>lo</div>
     <select id="aspect" aria-label="새 프로젝트 화면 비율">
       <option value="1920x1080">▭ 16:9</option>
       <option value="1080x1920">▯ 9:16 쇼츠</option>
@@ -350,7 +351,7 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
   <button id="redo" title="Ctrl+Shift+Z">↷</button>
   <span class="sp"></span>
   <button id="bImport" title="Ctrl+I">가져오기</button>
-  <button id="bStudio" title="컷룸 스튜디오: 썸네일 · 이미지 · 이미지 애니메이션을 만들어 타임라인에 넣습니다">🖼 이미지 편집기</button>
+  <button id="bStudio" title="Velo Studio: 썸네일 · 이미지 · 이미지 애니메이션을 만들어 타임라인에 넣습니다">🖼 이미지 편집기</button>
   <button id="bCollab">공동 작업</button>
   <button id="bLayout" title="패널 위치와 크기">🧩 화면 배치</button>
   <button id="bKeys">⌨ 단축키</button>
@@ -448,7 +449,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const CUTROOM_VERSION='1.5.0';
+const VELO_VERSION='1.5.1';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -458,7 +459,7 @@ let P={w:1280,h:720,fps:30,clips:[],off:{}};
 let cur=null;          // 열린 작품 {id,name,collab,owner,members,...}
 let selIds=new Set(),selId=null,tool='V';
 let t=0,playing=false,rate=1,exporting=false,total=0,pps=60,busy=0;
-let topTab='src',botTab='proj',srcId=null,binGrid=false,gfxTab='edit';
+let topTab='src',botTab='proj',srcId=null,binGrid=false,gfxTab='edit',kfView=false;
 const uid=()=>rid('c');
 const byId=id=>P.clips.find(c=>c.id===id)||null;
 const isGen=c=>c.kind==='text'||c.kind==='shape'||c.kind==='adj'||c.kind==='image'||c.kind==='sample';
@@ -511,7 +512,7 @@ function demoProject(){
   S={s1:{id:'s1',name:'예시 클립 A',type:'sample',duration:20,c1:'#1f4fa8',c2:'#18b3a4'},s2:{id:'s2',name:'예시 클립 B',type:'sample',duration:20,c1:'#a8324f',c2:'#f09a3e'},adj:ADJ};
   const p={w:1920,h:1080,fps:30,clips:[],off:{}};P=p;
   p.clips.push(mkClip('s1','V1',0,{out:4,tin:{type:'dip',dur:.5}}),mkClip('s2','V1',4,{out:4,tin:{type:'iris',dur:.7},tout:{type:'dip',dur:.6}}),
-    mkText('V2',.4,Object.assign(clone(TPL('인트로 제목')),{text:'컷룸 예시 프로젝트',out:3.2})),
+    mkText('V2',.4,Object.assign(clone(TPL('인트로 제목')),{text:'Velo 예시 프로젝트',out:3.2})),
     mkText('V2',4.3,Object.assign(clone(TPL('노래방 가사')),{text:'노래방 자막도 됩니다',out:3.4})));
   return p;
 }
@@ -770,9 +771,11 @@ function rgba(hex,a){const n=parseInt(String(hex).slice(1),16)||0;return `rgba($
 /* ================= 그리기: 자막 ================= */
 const IN_ANIMS=[['none','없음'],['fade','서서히'],['up','아래에서 위로'],['down','위에서 아래로'],['left','왼쪽에서'],['right','오른쪽에서'],
   ['pop','통통 튀기'],['zoomin','작게→크게'],['zoomout','크게→작게'],['bounce','바운스'],['shake','흔들기'],['spin','회전하며'],
-  ['blur','흐림 풀기'],['wipe','닦아내기(자막바)'],['type','타자기'],['char','글자별 튀기']];
+  ['blur','흐림 풀기'],['wipe','닦아내기(자막바)'],['type','타자기'],['char','글자별 튀기'],
+  ['wave','출렁(웨이브)'],['glitch','글리치'],['pulse','두근두근'],['rubber','고무줄'],['flip','뒤집기'],['drop','뚝 떨어짐']];
 const OUT_ANIMS=[['none','없음'],['fade','서서히'],['up','위로 사라짐'],['down','아래로 사라짐'],['left','왼쪽으로'],['right','오른쪽으로'],
-  ['zoomin','작아지며'],['zoomout','커지며'],['blur','흐려지며'],['wipe','닦아내기'],['spin','회전하며']];
+  ['zoomin','작아지며'],['zoomout','커지며'],['blur','흐려지며'],['wipe','닦아내기'],['spin','회전하며'],
+  ['wave','출렁(웨이브)'],['glitch','글리치'],['pulse','두근두근'],['drop','떨어짐']];
 function animMod(type,p,k,st,W0){
   if(p>=1||!type||type==='none')return;const e=ease(p);
   switch(type){
@@ -791,9 +794,15 @@ function animMod(type,p,k,st,W0){
     case 'wipe':st.clip=Math.min(st.clip,e);break;
     case 'type':st.chars=Math.min(st.chars,p);break;
     case 'char':st.per=Math.min(st.per,p);break;
+    case 'wave':{const w2=1-p;st.dy+=Math.sin(p*18)*w2*30*k;st.dx+=Math.cos(p*14)*w2*15*k;st.rot+=Math.sin(p*12)*w2*.08;st.a*=Math.min(1,p*3);break;}
+    case 'glitch':{const g=1-p;st.dx+=((Math.sin(p*120)>.3?1:0)-.5)*g*50*k;st.dy+=((Math.cos(p*95)>.4?1:0)-.5)*g*20*k;st.sc*=1+g*.15*Math.sin(p*80);st.a*=Math.min(1,p*2);break;}
+    case 'pulse':{const pp=Math.sin(p*Math.PI*3)*(1-p);st.sc*=1+pp*.25;st.a*=Math.min(1,p*3);break;}
+    case 'rubber':{const r=Math.sin(p*Math.PI*4)*(1-p)*.3;st.sc*=1+r;st.rot+=Math.sin(p*Math.PI*3)*(1-p)*.12;st.a*=Math.min(1,p*4);break;}
+    case 'flip':st.sc*=Math.abs(Math.cos((1-e)*Math.PI*.5));st.a*=p;break;
+    case 'drop':{const dp=Math.min(1,p*2);const bn=dp<1?-Math.abs(Math.cos(dp*Math.PI*2.5))*(1-dp)*120*k:0;st.dy-=bn;st.a*=Math.min(1,p*4);break;}
   }
 }
-const OUT_MAP={up:'down',down:'up',left:'right',right:'left',zoomin:'zoomout',zoomout:'zoomin'};
+const OUT_MAP={up:'down',down:'up',left:'right',right:'left',zoomin:'zoomout',zoomout:'zoomin',drop:'up'};
 function gradStops(c){const st=Array.isArray(c.gstops)&&c.gstops.length>=2?c.gstops:[{c:c.g1||'#ffe14a',p:0},{c:c.g2||'#ff5fa2',p:100}];return [...st].sort((a,b)=>a.p-b.p);}
 function mixHex(a,b,f){const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16));try{const A=p(a),B=p(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*f).toString(16).padStart(2,'0')).join('');}catch(e){return a;}}
 function makeGrad(g,c,w,h){
@@ -1218,10 +1227,12 @@ function renderTimeline(){
     if(c.kind==='audio'){if(s&&s.type==='audio')el.classList.add('music');const wv=waveCanvas(c,s,d);if(wv)el.append(wv);}
     else if(s&&(s.type==='video'||s.type==='image')&&(s.strip||s.thumb)){const st=h('div','strip'),hh2=RH.V-22,tw=Math.max(24,Math.round(hh2*16/9)),n=Math.min(200,Math.ceil(d*pps/tw));
       for(let i=0;i<n;i++){const x=h('i');x.style.width=tw+'px';const tt=c.in+(i*tw/pps)*c.speed;x.style.backgroundImage=`url(${stripAt(s,tt)})`;st.append(x);}el.append(st);}
+    else if(c.kind==='text'&&c.text){const pv=h('div','tpv');pv.style.cssText='position:absolute;left:4px;top:18px;right:4px;bottom:2px;font:11px/1.2 sans-serif;color:#ffffffaa;overflow:hidden;pointer-events:none;white-space:nowrap;text-overflow:ellipsis';
+      pv.textContent=(c.text||'').replace(/\n/g,' ');el.append(pv);}
     if(c.tin){const x=h('div','tri');x.style.width=Math.min(d,c.tin.dur)*pps+'px';el.append(x);}
     if(c.tout){const x=h('div','tro');x.style.width=Math.min(d,c.tout.dur)*pps+'px';el.append(x);}
     el.append(h('div','lb',clipLabel(c)),h('div','hl'),h('div','hr'));
-    if(c.kind==='text'){
+    if(c.kind==='text'&&!kfView){
       const bar=(cls,key,sign,label)=>{const b=h('div',cls);b.style.width=Math.max(4,Math.min(d,c[key])*pps)+'px';b.title=`${label} ${(+c[key]).toFixed(2)}초 · 끌어서 속도 조절`;
         b.onpointerdown=e=>{e.stopPropagation();if(e.button)return;selectOnly(c.id);afterSelect();const id=c.id,o=c[key];
           dragX(e,dx=>{const cc=byId(id);if(!cc)return;cc[key]=+clamp(o+sign*dx/pps,.05,dur(cc)).toFixed(2);renderTimeline();},m=>{if(m)refresh(true);});};el.append(b);};
@@ -1229,7 +1240,8 @@ function renderTimeline(){
       if(c.aout&&c.aout!=='none')bar('ane','aoutD',-1,'퇴장');
     }
     {const seen=new Set();
-    for(const p of ANIM)if(isAnim(c,p))c[p].k.forEach((k,ki)=>{if(k[0]<0||k[0]>d)return;const key=k[0].toFixed(2);if(seen.has(key))return;seen.add(key);
+    const showKf=kfView||!c.kind||c.kind!=='text';
+    for(const p of ANIM)if(isAnim(c,p))c[p].k.forEach((k,ki)=>{if(k[0]<0||k[0]>d)return;if(!showKf&&c.kind==='text')return;const key=k[0].toFixed(2);if(seen.has(key))return;seen.add(key);
       const ek=kEaseKind(k[2]),kd=h('div','kf'+(ek==='hold'?' hold':ek!=='lin'?' ease':'')+(kfSel&&kfSel.id===c.id&&Math.abs((byId(c.id)[kfSel.p]?.k?.[kfSel.i]?.[0]??-9)-k[0])<.021?' sel':''));
       kd.style.left=(k[0]*pps)+'px';
       const props=ANIM.filter(q=>isAnim(c,q)&&c[q].k.some(z=>Math.abs(z[0]-k[0])<.021)).map(q=>PNAME[q]);
@@ -1866,7 +1878,12 @@ const TEMPLATES=[
   ['페이드 하단',{y:88,size:50,font:'Pretendard',fill:'#ffffff',strokes:[],bg:true,bgc:'#1a1a2e',bgo:80,bgr:0,ain:'fade',ainD:.5,aout:'fade',aoutD:.5,text:'부드럽게 나타나는 하단 자막'}],
   ['굵은 테두리',{y:50,size:120,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#1a1a1a',w:14},{c:'#ffffff',w:4}],ain:'pop',ainD:.3,text:'두꺼운 테두리'}],
   ['시네마 레터박스',{y:50,size:72,font:'Pretendard',fill:'#ffffff',strokes:[],lead:'2.2',ain:'blur',ainD:.6,aout:'blur',aoutD:.4,text:'영화처럼\n자막을 넣어 보세요'}],
-  ['D-Day 카운터',{y:50,size:160,font:'Pretendard Black',fill:'#ffffff',strokes:[{c:'#ff3d6e',w:8}],cnt:{on:true,from:30,to:0,sec:3,delay:0,comma:false,ease:true,roll:true,pre:'D-',suf:'',pad:0},text:'D-30'}]];
+  ['D-Day 카운터',{y:50,size:160,font:'Pretendard Black',fill:'#ffffff',strokes:[{c:'#ff3d6e',w:8}],cnt:{on:true,from:30,to:0,sec:3,delay:0,comma:false,ease:true,roll:true,pre:'D-',suf:'',pad:0},text:'D-30'}],
+  ['출렁 자막',{y:50,size:100,font:'Jua',fill:'#ffffff',strokes:[{c:'#ff3d6e',w:8}],ain:'wave',ainD:1,text:'출렁출렁~'}],
+  ['글리치 제목',{y:50,size:110,font:'Pretendard Black',fill:'#00ff88',strokes:[{c:'#000000',w:6}],ain:'glitch',ainD:.7,text:'GLITCH 오류'}],
+  ['두근 강조',{y:50,size:120,font:'Black Han Sans',fill:'#ff3d6e',strokes:[{c:'#ffffff',w:5}],ain:'pulse',ainD:.8,text:'두근두근!'}],
+  ['고무줄 등장',{y:50,size:100,font:'Jua',fill:'#ffe14a',strokes:[{c:'#1a1a1a',w:8}],ain:'rubber',ainD:.8,text:'탄~탄! 고무줄'}],
+  ['뚝 떨어짐',{y:50,size:110,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#000000',w:10}],sh:true,shc:'#000000',sho:60,shb:4,shd:6,sha:90,ain:'drop',ainD:.6,text:'쿵!'}]];
 function loadFont(c){if(document.fonts&&document.fonts.load)document.fonts.load(`${c.bold?800:500} 40px "${c.font}"`,c.text||'가').catch(()=>{});}
 FONTS.forEach(([f])=>{try{document.fonts.load(`500 40px "${f}"`,'가A');}catch(e){}});
 function gradEditor(C){
@@ -1963,7 +1980,9 @@ function panelGfx(el){
       for(const[k,n]of list)g.append(previewCard(n,()=>prevElem(C(),key==='ain'?k:'none',key==='aout'?k:'none'),()=>{pushHistory();C()[key]=k;renderPanels();toast(`${title}: ${n}`);},C()[key]===k));
       s.append(g);el.append(s);
     };
-    mkGal('등장 애니메이션',IN_ANIMS,'ain','ainD');mkGal('퇴장 애니메이션',OUT_ANIMS,'aout','aoutD');return;
+    mkGal('등장 애니메이션',IN_ANIMS,'ain','ainD');mkGal('퇴장 애니메이션',OUT_ANIMS,'aout','aoutD');
+    const kfSec=section('타임라인 표시');kfSec.append(check('키프레임으로 보기',()=>kfView,v=>{kfView=v;renderTimeline();}),
+      h('p','hint','켜면 타임라인에서 노란 애니메이션 바 대신 키프레임 ◆가 표시됩니다.'));el.append(kfSec);return;
   }
   if(c&&c.kind==='shape'){panelShape(el,c);return;}
   if(!isT){
@@ -2490,13 +2509,13 @@ async function goHome(){
 }
 const SITE_APP='https://yoonslog.github.io/cutroom/app/';
 function siteLogin(){
-  modal(b=>{b.append(h('h3',null,'컷룸 계정으로 로그인'),h('p','hint','이 페이지에서는 계정 서버에 연결할 수 없어 작품이 이 브라우저에만 저장됩니다. 회원가입·로그인과 공동 작업은 컷룸 사이트나 Windows 앱에서 할 수 있습니다.'));
+  modal(b=>{b.append(h('h3',null,'Velo 계정으로 로그인'),h('p','hint','이 페이지에서는 계정 서버에 연결할 수 없어 작품이 이 브라우저에만 저장됩니다. 회원가입·로그인과 공동 작업은 Velo 사이트나 Windows 앱에서 할 수 있습니다.'));
     const a2=h('a',null,SITE_APP);a2.href=SITE_APP;a2.target='_blank';a2.rel='noopener';const p2=h('p');p2.append(a2);b.append(p2);
     const a=h('div','acts'),c=h('button','primary','확인');c.onclick=closeModal;a.append(c);b.append(a);});
 }
 function needLogin(){if(!IS_APP&&!CAN_P2P&&!fb.on){siteLogin();return;}
   modal(b=>{b.append(h('h3',null,'공동 작업은 로그인이 필요합니다'));
-    b.append(h('p','hint',IS_APP?'PC 앱에서는 작품이 이 컴퓨터에만 저장됩니다. 공동 작업은 컷룸 웹 사이트에서 로그인한 뒤 할 수 있습니다.':'Claude 계정으로 로그인하면 작품이 계정에 저장되고 공동 작업을 할 수 있습니다. 계정이 없으면 claude.ai에서 무료로 가입한 뒤 이 페이지를 다시 열어 주세요.'));
+    b.append(h('p','hint',IS_APP?'PC 앱에서는 작품이 이 컴퓨터에만 저장됩니다. 공동 작업은 Velo 웹 사이트에서 로그인한 뒤 할 수 있습니다.':'Claude 계정으로 로그인하면 작품이 계정에 저장되고 공동 작업을 할 수 있습니다. 계정이 없으면 claude.ai에서 무료로 가입한 뒤 이 페이지를 다시 열어 주세요.'));
     const a=h('div','acts'),c=h('button','primary','확인');c.onclick=closeModal;a.append(c);b.append(a);});
 }
 async function startCollab(rec){
@@ -2571,7 +2590,7 @@ $('projFile').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const d=JSON.parse(await f.text());if(!d.P||!Array.isArray(d.P.clips))throw 0;
     const rec=newRecord(d.name||f.name.replace(/\..*$/,''),d.w||d.P.w||1920,d.h||d.P.h||1080,{P:d.P,media:d.media||[]});await openProject(rec,true);}
-  catch(err){toast('컷룸 프로젝트 파일(.cutroom.json)이 아닙니다.');}
+  catch(err){toast('Velo 프로젝트 파일(.cutroom.json)이 아닙니다.');}
 };
 
 /* ================= 홈 화면 ================= */
@@ -2595,7 +2614,7 @@ function renderQuick(){const q=$('quick');q.textContent='';for(const[ic,n,fn]of 
 const SIDE=[
   ['노래방 · 쇼츠 자막','글자가 차오르는 노래방 자막과 쇼츠 강조 자막, 자막바를 템플릿으로 바로 넣으세요.','템플릿 열기',()=>QUICK[3][2]()],
   ['함께 편집하기',IS_APP?'작품을 열고 "서버 열기"를 누르면 6자리 코드가 나옵니다. 다른 사람은 앱의 "서버 참여"에 코드를 넣으면 같은 타임라인을 함께 편집합니다.':'작품에서 공동 작업을 켜면 로그인한 사람끼리 같은 타임라인을 실시간으로 편집합니다.',IS_APP?'서버 참여':'방법 보기',()=>IS_APP?p2pDialog():showCollabHelp()],
-  ['PC 앱으로 쓰기','Windows용 컷룸 앱을 받아 브라우저 없이 쓸 수 있습니다. 작품은 그 컴퓨터에 저장됩니다.','Windows 앱 받기',()=>downloadApp()]];
+  ['PC 앱으로 쓰기','Windows용 Velo 앱을 받아 브라우저 없이 쓸 수 있습니다. 작품은 그 컴퓨터에 저장됩니다.','Windows 앱 받기',()=>downloadApp()]];
 let sideI=0,sideT=performance.now();
 function renderSide(){
   const ds=$('sideDots');ds.textContent='';SIDE.forEach((_,i)=>{const b=h('button',i===sideI?'on':'');b.setAttribute('aria-label',`${i+1}번째 소식`);b.onclick=()=>{sideI=i;sideT=performance.now();renderSide();};ds.append(b);});
@@ -2626,7 +2645,7 @@ async function renderHome(){
   if(fb.on){$('bLogin').hidden=false;$('bLogin').textContent=fb.profile?'👤 '+fb.profile.name:'👤 로그인 / 회원가입';}
   else if(IS_APP){$('bLogin').hidden=false;$('bLogin').textContent=prof()?'👤 '+prof().name:'👤 로그인';}
   $('bJoin').hidden=!CAN_P2P;
-  if(IS_APP){const u=h('button','mini','v'+(window.NL_APPVERSION||CUTROOM_VERSION)+' · 업데이트 확인');u.onclick=()=>checkUpdate(true);who.append(u);}
+  if(IS_APP){const u=h('button','mini','v'+(window.NL_APPVERSION||VELO_VERSION)+' · 업데이트 확인');u.onclick=()=>checkUpdate(true);who.append(u);}
   {const pn=h('button','mini','📋 패치 노트');pn.onclick=()=>showPatchNotes();who.append(pn);}
   const grid=$('projGrid');grid.className=homeList?'list':'';grid.textContent='';
   const q=homeQ.trim().toLowerCase();
@@ -2766,7 +2785,7 @@ function p2pDialog(){
   if(!fb.profile&&!prof()){fb.on?fbAuthDialog('login'):appLogin(p2pDialog);return;}
   modal(b=>{
     if(net.role==='host'){
-      b.append(h('h3',null,'🖧 서버가 열렸습니다'),h('p','hint','함께할 사람에게 이 코드를 알려 주세요. 그 사람은 컷룸 앱 첫 화면의 "서버 참여"에 코드를 넣으면 됩니다.'),h('div','code',net.code));
+      b.append(h('h3',null,'🖧 서버가 열렸습니다'),h('p','hint','함께할 사람에게 이 코드를 알려 주세요. 그 사람은 Velo 앱 첫 화면의 "서버 참여"에 코드를 넣으면 됩니다.'),h('div','code',net.code));
       const ppl=h('div','chips');for(const p of Object.values(net.people)){if(!p)continue;const s2=h('span','pchip',p.name);s2.style.borderColor=s2.style.color=p.color;ppl.append(s2);}b.append(ppl);
       b.append(h('p','hint','이 앱이 켜져 있고 이 작품이 열려 있는 동안만 서버가 유지됩니다. 영상 파일은 서버를 연 컴퓨터에서 참여자에게 직접 전송됩니다.'));
       const a=h('div','acts'),x=h('button','danger','서버 닫기'),cp=h('button',null,'코드 복사'),ok=h('button','primary','확인');
@@ -2822,7 +2841,7 @@ function drawCursors(){
 }
 function clearCursors(){for(const k in rcur)delete rcur[k];document.querySelectorAll('.rcur').forEach(e=>e.remove());}
 
-/* ================= Firebase: 컷룸 계정 · 작품 저장 · 공동 작업 ================= */
+/* ================= Firebase: Velo 계정 · 작품 저장 · 공동 작업 ================= */
 const fb={on:false,user:null,db:null,auth:null,profile:null,peer:null,asked:new Set(),offs:[]};
 const FBV='10.12.2';
 function loadScript(src){return new Promise((res,rej)=>{const s2=document.createElement('script');s2.src=src;s2.onload=res;s2.onerror=rej;document.head.append(s2);});}
@@ -2860,7 +2879,7 @@ function fbAuthDialog(mode){
   }
   modal(b=>{
     const tabs=h('div','subtabs');for(const[k,n]of [['login','로그인'],['signup','회원가입']]){const t2=h('button',mode===k?'on':'',n);t2.onclick=()=>fbAuthDialog(k);tabs.append(t2);}
-    b.append(h('h3',null,'컷룸 계정'),tabs);
+    b.append(h('h3',null,'Velo 계정'),tabs);
     const id=h('input');id.type='text';id.placeholder='영문·숫자 3~20자';id.autocomplete='username';id.maxLength=20;
     const pw=h('input');pw.type='password';pw.placeholder='6자 이상';pw.autocomplete=mode==='login'?'current-password':'new-password';
     b.append(row('아이디',id),row('비밀번호',pw));
@@ -2953,7 +2972,7 @@ function fbCollabDialog(){
   if(!cur)return;
   modal(async b=>{
     b.append(h('h3',null,'👥 공동 작업'));
-    b.append(h('p','hint','함께할 사람의 컷룸 아이디를 넣으면 그 사람의 "내 작품"에 이 작품이 생깁니다. 서로의 마우스가 보이고, 고친 내용은 1~2초 안에 반영됩니다. 영상 파일은 상대가 접속해 있을 때 컴퓨터끼리 바로 전송됩니다.'));
+    b.append(h('p','hint','함께할 사람의 Velo 아이디를 넣으면 그 사람의 "내 작품"에 이 작품이 생깁니다. 서로의 마우스가 보이고, 고친 내용은 1~2초 안에 반영됩니다. 영상 파일은 상대가 접속해 있을 때 컴퓨터끼리 바로 전송됩니다.'));
     const list=h('div','chips');b.append(list);
     const fill=async()=>{list.textContent='';for(const u of cur.members||[]){const p=(await fb.db.ref('profiles/'+u).get()).val()||{};const s2=h('span','pchip',(p.name||'참여자')+(p.id?' @'+p.id:'')+(u===cur.owner?' · 주인':''));s2.style.borderColor=s2.style.color=p.color||'#2fd5c5';list.append(s2);}};
     fill();
@@ -3487,6 +3506,13 @@ async function checkUpdate(manual){
 if(IS_APP)setInterval(()=>checkUpdate(),3*3600*1000);
 /* ================= 앱 내 패치 노트 ================= */
 const PATCH_NOTES=[
+  ['1.5.1','2026-11-22','Velo 리브랜딩 · 새 애니메이션 · 키프레임 토글',[
+    '편집기 이름을 "컷룸"에서 "Velo"로 변경, 새 로고 적용',
+    '새 등장/퇴장 애니메이션 6종: 출렁(웨이브), 글리치, 두근두근, 고무줄, 뒤집기, 뚝 떨어짐',
+    '출렁 자막, 글리치 제목, 두근 강조, 고무줄 등장, 뚝 떨어짐 등 새 애니메이션 템플릿 5종 추가',
+    '애니메이션 탭에 "키프레임으로 보기" 토글 — 켜면 노란 애니메이션 바 대신 키프레임 ◆ 표시',
+    '타임라인 자막 클립에 텍스트 미리보기 표시'
+  ]],
   ['1.5.0','2026-11-22','새 템플릿 · 효과음 · 앱 내 패치 노트',[
     '마크 서버 자막, 마크 큰 제목, 마크 대사 자막 등 마인크래프트 유튜브 스타일 템플릿 13종 추가',
     '브이로그 자막, 핑크 강조, 노란 흔들림, 페이드 하단, 굵은 테두리, 시네마 레터박스, D-Day 카운터 템플릿 추가',
@@ -3545,7 +3571,7 @@ function showPatchNotes(){
   modal(b=>{
     b.style.maxWidth='640px';b.style.maxHeight='80vh';b.style.overflowY='auto';
     b.append(h('h2',null,'📋 패치 노트'));
-    b.append(h('p','hint','컷룸의 모든 업데이트 내역입니다.'));
+    b.append(h('p','hint','Velo의 모든 업데이트 내역입니다.'));
     for(const[ver,date,title,items]of PATCH_NOTES){
       const card=h('div');card.style.cssText='margin:12px 0;padding:12px 16px;background:#ffffff08;border-radius:10px;border-left:4px solid #2fd5c5';
       card.append(h('h3',null,`v${ver}  ·  ${date}`));
@@ -3635,14 +3661,14 @@ applyLayout();
   listen();
 })();
 
-/* ================= 컷룸 스튜디오(이미지 편집기) 연결 ================= */
+/* ================= Velo Studio(이미지 편집기) 연결 ================= */
 const STUDIO_URL=window.CUTROOM_STUDIO_URL||(IS_APP?'studio/index.html':'../studio/index.html');
 let studio=null;
 function openStudio(o){
   o=o||{};if(studio)return;
   const w=document.createElement('div');w.id='studioWrap';
   const bar=document.createElement('div');bar.className='sbar';
-  const t=document.createElement('span');t.innerHTML='<b>컷룸 스튜디오</b> · 썸네일 · 이미지 · 이미지 애니메이션'+(cur?' — "🎞 컷룸으로 보내기"를 누르면 지금 작품의 재생 헤드 위치에 들어갑니다':'');
+  const t=document.createElement('span');t.innerHTML='<b>Velo Studio</b> · 썸네일 · 이미지 · 이미지 애니메이션'+(cur?' — "🎞 Velo로 보내기"를 누르면 지금 작품의 재생 헤드 위치에 들어갑니다':'');
   const sp=document.createElement('span');sp.style.flex='1';
   const x=document.createElement('button');x.textContent='✕ 닫기';x.onclick=closeStudio;
   bar.append(t,sp,x);
