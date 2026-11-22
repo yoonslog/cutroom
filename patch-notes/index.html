@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Velo 패치 노트 · 업데이트 내역</title>
+<link rel="icon" type="image/png" href="../app/favicon.png">
 <style>
 /* 한 화면 소개 → 영상 → 기능 3개 → 다운로드 상세 → 바뀐 점. Velo 앱과 같은 어두운 회청색과 민트 강조색. */
 :root{
@@ -66,8 +67,16 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
 <nav><div class="brand"><a href="../" style="color:inherit;text-decoration:none"><b>Ve</b>lo</a></div><a class="hide" href="../#download">다운로드</a><a href="../app/">웹에서 열기</a></nav>
 <h1 style="margin:30px 0 4px">패치 노트 · 업데이트 내역</h1>
 <p style="color:var(--dim);margin:0">버전마다 바뀐 점을 짧은 영상과 함께 정리했습니다. 설치한 앱은 새 버전을 자동으로 받습니다.</p>
-<div class="toc"><a href="#v1.5.1">v1.5.1</a><a href="#v1.5.0">v1.5.0</a><a href="#v1.4.4">v1.4.4</a><a href="#v1.4.3">v1.4.3</a><a href="#v1.4.2">v1.4.2</a><a href="#v1.4.1">v1.4.1</a><a href="#v1.4.0">v1.4.0</a><a href="#v1.3.0">v1.3.0</a><a href="#v1.2.0">v1.2.0</a><a href="#v1.1.0">v1.1.0</a></div>
-<article class="pn" id="v1.5.1">
+<div class="toc"><a href="#v1.5.2">v1.5.2</a><a href="#v1.5.1">v1.5.1</a><a href="#v1.5.0">v1.5.0</a><a href="#v1.4.4">v1.4.4</a><a href="#v1.4.3">v1.4.3</a><a href="#v1.4.2">v1.4.2</a><a href="#v1.4.1">v1.4.1</a><a href="#v1.4.0">v1.4.0</a><a href="#v1.3.0">v1.3.0</a><a href="#v1.2.0">v1.2.0</a><a href="#v1.1.0">v1.1.0</a></div>
+<article class="pn" id="v1.5.2">
+  <div class="pnh"><span class="ver">v1.5.2</span><h2>큰 영상 깜빡임 수정 · 로딩바 · Velo 앱</h2><span class="date">2026년 11월 22일</span></div>
+  <ul>
+    <li>큰 영상을 재생하거나 이동할 때 화면이 <b>검게 깜빡이던 문제</b> 수정</li>
+    <li>파일을 가져올 때 <b>진행률 로딩바</b>, 영상 준비 중에는 "영상 불러오는 중…" 표시</li>
+    <li>앱 이름·실행 파일(Velo.exe)·아이콘을 모두 <b>Velo</b>로 변경</li>
+    <li>1.5.0~1.5.1 앱에서 창이 닫히지 않던 문제 수정</li>
+  </ul>
+</article><article class="pn" id="v1.5.1">
   <div class="pnh"><span class="ver">v1.5.1</span><h2>Velo 리브랜딩 · 새 애니메이션 · 키프레임 토글</h2><span class="date">2026년 11월 22일</span></div>
   <ul>
     <li>편집기 이름을 <b>Velo</b>로 변경, 새 로고 적용</li>
@@ -117,7 +126,7 @@ footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px soli
   <div class="pnh"><span class="ver">v1.4.1</span><h2>설치 파일 · 대용량 · 실시간 미리보기</h2><span class="date">2026년 11월 21일</span></div>
   <video src="../media/patch/v141.mp4" poster="../media/patch/v141.jpg" controls muted loop playsinline preload="none"></video>
   <ul>
-        <li>Windows 설치 파일(CutRoom-Setup.exe) 추가 — 바탕화면 · 시작 메뉴 아이콘, 설정 → 앱에서 제거</li>
+        <li>Windows 설치 파일(Velo-Setup.exe) 추가 — 바탕화면 · 시작 메뉴 아이콘, 설정 → 앱에서 제거</li>
         <li>새 버전을 앱이 알아서 받아 두고, 받으면 "지금 다시 시작" 알림만 띄웁니다</li>
         <li>큰 영상 파일 끊김 해결: 재생 위치 근처 클립만 메모리에 올리고 먼 클립은 자동으로 내립니다</li>
         <li>타임라인을 축소하면 아무리 긴 영상도 트랙 전체가 한 화면에 들어옵니다</li>

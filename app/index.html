@@ -280,7 +280,14 @@ body.picking #cv{cursor:crosshair}
 .keys dt,.keys dd{margin:0}.keys dd{color:var(--dim)}
 kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--panel2)}
 .bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:10px 0}
-.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+#stage{position:relative}
+#vload{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:7px 12px;border-radius:99px;background:#000a;color:#fff;font-size:12px;pointer-events:none;z-index:5}
+#vload.on{display:flex}
+#vload b{width:12px;height:12px;border:2px solid #fff4;border-top-color:#fff;border-radius:50%;animation:vspin .7s linear infinite}
+#vload .vbar{width:70px;height:4px;background:#fff3;border-radius:9px;overflow:hidden}
+#vload .vbar i{display:block;height:100%;width:40%;background:var(--accent);animation:vslide 1s ease-in-out infinite}
+@keyframes vspin{to{transform:rotate(360deg)}}@keyframes vslide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:9px 15px;border-radius:9px;display:none;z-index:95;max-width:90%}
 #pool{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;overflow:hidden}
 #pool video{width:2px;height:2px}
@@ -376,7 +383,7 @@ kbd{font:11.5px var(--font);border:1px solid var(--line);border-bottom-width:2px
   <div class="frame" id="monFrame">
     <div class="tabs"><span class="title">프로그램 모니터</span></div>
     <div class="body" id="pgmBody">
-      <div id="stage"><canvas id="cv" width="1280" height="720"></canvas></div>
+      <div id="stage"><canvas id="cv" width="1280" height="720"></canvas><div id="vload"><b></b><span>영상 불러오는 중…</span><div class="vbar"><i></i></div></div></div>
       <div class="transport">
         <span class="tc num" id="tc">00:00:00</span>
         <button id="toStart" title="Home">⏮</button>
@@ -449,7 +456,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const VELO_VERSION='1.5.1';
+const VELO_VERSION='1.5.2';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -676,7 +683,7 @@ function evictMedia(){
     const d=t<c.start?c.start-t:t>end(c)?t-end(c):0;if(d>20)far.push([d,id,m]);}
   far.sort((a,b)=>b[0]-a[0]);
   for(const[,id,m]of far){if(els.size<=8)break;
-    try{m.el.pause();m.el.removeAttribute('src');m.el.load();m.el.remove();if(m.gain)m.gain.disconnect();if(m.hp)m.hp.disconnect();}catch(e){}els.delete(id);}
+    try{m.fc=null;m.el.pause();m.el.removeAttribute('src');m.el.load();m.el.remove();if(m.gain)m.gain.disconnect();if(m.hp)m.hp.disconnect();}catch(e){}els.delete(id);}
 }
 function dropMedia(){for(const[,m]of els){m.el.pause();m.el.removeAttribute('src');m.el.remove();}els.clear();}
 const ROOMS={room:['작은 방',.7,3.2],hall:['콘서트홀',2.6,2.4],church:['성당',4.5,1.8],cave:['동굴',3.5,1.4],plate:['밝은 울림',1.4,4]};
@@ -720,7 +727,7 @@ function sync(){
       if(fwd){
         const r=clamp(c.speed*rate,.07,16);if(el.playbackRate!==r)el.playbackRate=r;
         const lim=isFinite(el.duration)?el.duration-.06:1e9;
-        if(Math.abs(el.currentTime-want)>.3&&!el.seeking&&want<lim)el.currentTime=want;
+        if(Math.abs(el.currentTime-want)>(el.readyState<3?1.2:.45)&&!el.seeking&&want<lim)el.currentTime=want;
         if(el.paused&&!el.ended&&want<lim)el.play().catch(()=>{});
       }else{
         if(!el.paused)el.pause();
@@ -1011,10 +1018,21 @@ function drawElem(g,c,u,k,W0){if(c.kind==='shape')return drawShapeLocal(g,c,u,k,
 /* ================= 그리기: 합성 ================= */
 function frameOf(c){
   const s=S[c.src];if(!s||s.offline)return null;
-  if(c.kind==='video'){const m=mediaFor(c);return m&&m.el.readyState>=2&&m.el.videoWidth?[m.el,m.el.videoWidth,m.el.videoHeight]:null;}
+  if(c.kind==='video'){const m=mediaFor(c);if(!m)return null;const el=m.el,ok=el.readyState>=2&&el.videoWidth&&!el.seeking;
+    if(ok){const vw=el.videoWidth,vh=el.videoHeight,q=Math.min(1,1280/vw);
+      if(!m.fc){m.fc=document.createElement('canvas');m.fg=m.fc.getContext('2d');}
+      if(m.fc.width!==Math.round(vw*q)){m.fc.width=Math.round(vw*q);m.fc.height=Math.round(vh*q);}
+      if(m.ft!==el.currentTime){try{m.fg.drawImage(el,0,0,m.fc.width,m.fc.height);m.ft=el.currentTime;m.fw=vw;m.fh=vh;m.fq=q;}catch(e){}}
+      lastFrames.set(c.src,m);return [el,vw,vh,1];}
+    const lf=m.ft!=null?m:lastFrames.get(c.src);
+    if(lf&&lf.ft!=null){waitingVid=true;return [lf.fc,lf.fw,lf.fh,lf.fq];}
+    waitingVid=true;
+    if(s.thumb&&s.w){if(!s.thImg){s.thImg=new Image();s.thImg.src=shortUrl(s.thumb);}
+      const ti=s.thImg;if(ti.complete&&ti.naturalWidth)return [ti,s.w,s.h,ti.naturalWidth/s.w];}
+    return null;}
   if(c.kind==='image'&&s.img)return [s.img,s.w,s.h];return null;
 }
-const boxes=new Map();
+const boxes=new Map(),lastFrames=new Map();let waitingVid=false,waitSince=0;
 function outer(g,o){
   if(o.clipW!=null){g.beginPath();g.rect(0,0,o.clipW,H);g.clip();}
   if(o.clipR!=null){g.beginPath();g.arc(W/2,H/2,Math.max(0,o.clipR),0,7);g.clip();}
@@ -1034,10 +1052,10 @@ function drawBody(c,u,alpha,o){
   else if(c.kind==='sample'&&S[c.src]){ax=anc[0]*W/2;ay=anc[1]*H/2;g.translate(ax-W/2,ay-H/2);drawSample(g,S[c.src],c.in+u*c.speed);}
   else{
     const f=frameOf(c);
-    if(f){const[src,sw,sh]=f,k=c.fit==='cover'?Math.max(W/sw,H/sh):c.fit==='none'?1:Math.min(W/sw,H/sh),X=c.fx;
+    if(f){const[src,sw,sh,q0]=f,q=q0||1,k=c.fit==='cover'?Math.max(W/sw,H/sh):c.fit==='none'?1:Math.min(W/sw,H/sh),X=c.fx;
       ax=anc[0]*sw*k/2;ay=anc[1]*sh*k/2;g.translate(ax,ay);
       const sx=sw*X.cl/100,sy=sh*X.ct/100,sw2=sw*(1-(X.cl+X.cr)/100),sh2=sh*(1-(X.ct+X.cb)/100);
-      if(sw2>1&&sh2>1){try{g.drawImage(src,sx,sy,sw2,sh2,(-sw/2+sx)*k,(-sh/2+sy)*k,sw2*k,sh2*k);}catch(e){}}
+      if(sw2>1&&sh2>1){try{g.drawImage(src,sx*q,sy*q,sw2*q,sh2*q,(-sw/2+sx)*k,(-sh/2+sy)*k,sw2*k,sh2*k);}catch(e){}}
       bw=sw*k;bh=sh*k;}
     else if(S[c.src]&&S[c.src].offline){g.filter='none';g.fillStyle='#3a1418';g.fillRect(-W/2,-H/2,W,H);g.fillStyle='#ff9c9c';
       g.font=`600 ${Math.round(H*.045)}px "IBM Plex Sans KR",sans-serif`;g.textAlign='center';g.textBaseline='middle';
@@ -1132,7 +1150,8 @@ function frame(now){
       if(t>=total){t=total;const wasExp=exporting;setPlaying(false);if(wasExp)finishExport();}
       else if(t<=0){t=0;setPlaying(false);}
     }
-    sync();draw();updPlayhead();
+    waitingVid=false;sync();draw();updPlayhead();
+    {const lo=$('vload');if(lo){if(waitingVid){if(!waitSince)waitSince=now;}else waitSince=0;const show=waitSince&&now-waitSince>250;if(lo.classList.contains('on')!==!!show)lo.classList.toggle('on',!!show);}}
     for(const f of liveUpd){try{f();}catch(e){}}
     drawPreviews(now);drawCursors();drawMeter();
   }else drawSide(now);
@@ -2312,13 +2331,14 @@ function typeOf(file){
   return file.type.startsWith('video')?'video':file.type.startsWith('audio')?'audio':file.type.startsWith('image')?'image':
     ['mp4','mov','webm','mkv','m4v'].includes(ext)?'video':['mp3','wav','ogg','m4a','aac','flac'].includes(ext)?'audio':['png','jpg','jpeg','gif','webp'].includes(ext)?'image':null;
 }
-function probe(file){
-  return new Promise(res=>{
+function probe(file,onp){
+  return new Promise(res0=>{let pel=null;const res=x=>{try{if(pel){pel.onprogress=null;pel.removeAttribute('src');pel.load();}}catch(e){}res0(x);};
     const type=typeOf(file);if(!type){res(null);return;}
     const url=URL.createObjectURL(file),base={id:rid('m'),name:file.name.replace(/\.[^.]+$/,''),fname:file.name,type,url,file};
     if(type==='image'){const img=new Image();img.onload=()=>res({...base,img,w:img.naturalWidth,h:img.naturalHeight,duration:3600,thumb:thumbOf(img,img.naturalWidth,img.naturalHeight)});
       img.onerror=()=>res(null);img.src=url;return;}
-    const el=document.createElement(type);el.preload='auto';el.muted=true;el.playsInline=true;let done=false;
+    const el=document.createElement(type);pel=el;el.preload='auto';el.muted=true;el.playsInline=true;let done=false;
+    el.onprogress=()=>{try{if(onp&&el.buffered.length&&isFinite(el.duration))onp(el.buffered.end(el.buffered.length-1)/el.duration);}catch(e){}};
     const fin=x=>{if(done)return;done=true;const d=isFinite(el.duration)&&el.duration>0?el.duration:0;if(!d){res(null);return;}
       res({...base,duration:d,w:el.videoWidth||0,h:el.videoHeight||0,...x});};
     el.onerror=()=>{if(!done){done=true;res(null);}};
@@ -2352,14 +2372,14 @@ function buildStrip(s){
     const v=document.createElement('video');v.muted=true;v.preload='auto';v.playsInline=true;v.src=s.url;
     const n=Math.max(2,Math.min(60,Math.ceil(s.duration/1.5))),out=[];let i=0;
     const cv2=document.createElement('canvas');cv2.width=160;cv2.height=90;const g=cv2.getContext('2d');
-    const next=()=>{if(i>=n){s.strip=out;v.removeAttribute('src');res();return;}v.currentTime=Math.min(s.duration-.05,(i+.5)*s.duration/n);};
+    const next=()=>{if(i>=n){s.strip=out;v.removeAttribute('src');v.load();res();return;}if(playing||exporting){setTimeout(next,400);return;}v.currentTime=Math.min(s.duration-.05,(i+.5)*s.duration/n);};
     v.onseeked=()=>{try{const k=Math.max(160/v.videoWidth,90/v.videoHeight);g.drawImage(v,(160-v.videoWidth*k)/2,(90-v.videoHeight*k)/2,v.videoWidth*k,v.videoHeight*k);
       out.push({t:v.currentTime,u:cv2.toDataURL('image/jpeg',.62)});}catch(e){}i++;next();};
-    v.onloadedmetadata=next;v.onerror=()=>{s.strip=[];res();};setTimeout(()=>{if(i<n){s.strip=out;res();}},90000);
+    v.onloadedmetadata=next;v.onerror=()=>{s.strip=[];res();};setTimeout(()=>{if(i<n){s.strip=out;try{v.removeAttribute('src');v.load();}catch(e){}res();}},180000);
   });
 }
 async function buildPeaks(s){
-  if(!actx||!s.file||s.file.size>150*1048576||s.duration>2400){s.noPeaks=true;return;}
+  if(!actx||!s.file||s.file.size>100*1048576||s.duration>2400){s.noPeaks=true;return;}
   try{const buf=await actx.decodeAudioData(await s.file.arrayBuffer());const rate=100,n=Math.ceil(buf.duration*rate),pk=new Float32Array(n);
     const chs=[];for(let ch=0;ch<Math.min(2,buf.numberOfChannels);ch++)chs.push(buf.getChannelData(ch));
     const step=buf.sampleRate/rate;
@@ -2410,11 +2430,13 @@ async function loadMediaFor(rec){
 demoProject.samples=()=>({s1:{id:'s1',name:'예시 클립 A',type:'sample',duration:20,c1:'#1f4fa8',c2:'#18b3a4'},s2:{id:'s2',name:'예시 클립 B',type:'sample',duration:20,c1:'#a8324f',c2:'#f09a3e'}});
 async function importFiles(files){
   files=[...files];if(!files.length||!cur)return;let bad=0,relinked=0;const added=[];
-  toast('파일을 불러오는 중…');
-  for(const f of files){
+  let lbar=null,ltxt=null,lname=null;
+  modal(b=>{b.append(h('h3',null,'불러오는 중…'));lname=h('p','hint','');b.append(lname);const bar=h('div','bar');lbar=h('i');bar.append(lbar);b.append(bar);ltxt=h('p','hint num','0%');b.append(ltxt);});
+  const setP=(i,f,r)=>{const tot=(i+Math.min(1,r||0))/files.length;if(lbar)lbar.style.width=(tot*100).toFixed(1)+'%';if(ltxt)ltxt.textContent=`${Math.round(tot*100)}% · ${i+1}/${files.length}`;if(lname)lname.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+'MB)';};
+  for(const[fi,f]of files.entries()){setP(fi,f,0);
     const off=Object.values(S).find(s=>s.offline&&s.fname===f.name);
     if(off){attach(off,f);idbDo('readwrite',st=>st.put(f,off.id)).catch(()=>{});relinked++;continue;}
-    const s=await probe(f);if(s){S[s.id]=s;added.push(s);idbDo('readwrite',st=>st.put(f,s.id)).catch(()=>{});}else bad++;
+    const s=await probe(f,r=>setP(fi,f,r*.9));setP(fi,f,1);if(s){S[s.id]=s;added.push(s);idbDo('readwrite',st=>st.put(f,s.id)).catch(()=>{});}else bad++;
   }
   if(added.length&&!P.clips.some(c=>c.kind!=='text')){
     pushHistory();
@@ -2422,7 +2444,7 @@ async function importFiles(files){
     for(const s of added){if(s.type!=='audio')continue;const tr=freeTrack(AT,0,s.duration)||'A3';P.clips.push(mkClip(s.id,tr,0));}
     relayout();fitZoom();
   }
-  botTab='proj';refresh(true);
+  closeModal();botTab='proj';refresh(true);
   if(relinked)toast(`오프라인 미디어 ${relinked}개를 다시 연결했습니다.`);
   else if(bad)toast(`${bad}개 파일은 이 브라우저에서 열 수 없는 형식입니다. MP4(H.264)나 WebM으로 바꿔 다시 가져오세요.`);
   else toast(`${added.length}개 파일을 가져왔습니다.`);
@@ -3506,6 +3528,14 @@ async function checkUpdate(manual){
 if(IS_APP)setInterval(()=>checkUpdate(),3*3600*1000);
 /* ================= 앱 내 패치 노트 ================= */
 const PATCH_NOTES=[
+  ['1.5.2','2026-11-22','큰 영상 깜빡임 수정 · 불러오기 로딩바 · Velo 앱 아이콘',[
+    '큰 영상을 재생하거나 옮겨 다닐 때 화면이 검게 깜빡이던 문제 수정 — 다음 장면이 준비될 때까지 마지막 화면을 유지',
+    '영상이 아직 준비 중이면 미리보기 아래에 "영상 불러오는 중…" 표시',
+    '파일을 가져올 때 진행률 로딩바 표시',
+    '큰 파일을 열 때 미리보기 썸네일 만들기가 재생을 방해하지 않도록 개선',
+    '앱 이름·실행 파일·아이콘을 모두 Velo로 변경 (Velo.exe, Velo-Setup.exe)',
+    '1.5.0~1.5.1 앱에서 창이 닫히지 않던 문제 수정',
+  ]],
   ['1.5.1','2026-11-22','Velo 리브랜딩 · 새 애니메이션 · 키프레임 토글',[
     '편집기 이름을 "컷룸"에서 "Velo"로 변경, 새 로고 적용',
     '새 등장/퇴장 애니메이션 6종: 출렁(웨이브), 글리치, 두근두근, 고무줄, 뒤집기, 뚝 떨어짐',

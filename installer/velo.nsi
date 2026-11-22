@@ -3,22 +3,25 @@ Unicode true
 !include "FileFunc.nsh"
 
 !define APPNAME "Velo"
-!define APPEXE "CutRoom.exe"
-!define APPVER "1.5.1"
+!define APPEXE "Velo.exe"
+!ifndef APPVER
+!define APPVER "0.0.0"
+!endif
 !define PUBLISHER "Velo"
 !define SITE "https://yoonslog.github.io/cutroom/"
-!define REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\CutRoom"
+!define REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Velo"
+!define OLDKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\CutRoom"
 
 Name "${APPNAME} ${APPVER}"
 OutFile "${OUTFILE}"
 RequestExecutionLevel user
-InstallDir "$LOCALAPPDATA\Programs\CutRoom"
-InstallDirRegKey HKCU "Software\CutRoom" "InstallDir"
+InstallDir "$LOCALAPPDATA\Programs\Velo"
+InstallDirRegKey HKCU "Software\Velo" "InstallDir"
 SetCompressor /SOLID lzma
 ShowInstDetails hide
 ShowUnInstDetails hide
 
-VIProductVersion "1.4.4.0"
+VIProductVersion "${APPVER}.0"
 VIAddVersionKey /LANG=1042 "ProductName" "Velo 영상 편집기"
 VIAddVersionKey /LANG=1042 "FileDescription" "Velo 영상 편집기 설치 프로그램"
 VIAddVersionKey /LANG=1042 "FileVersion" "${APPVER}"
@@ -49,7 +52,10 @@ VIAddVersionKey /LANG=1042 "LegalCopyright" "© Velo"
 Function .onInit
   ; 이미 실행 중이면 안내
   FindWindow $0 "" "Velo"
+  StrCmp $0 0 0 ask
+  FindWindow $0 "" "컷룸 영상 편집기"
   StrCmp $0 0 ok
+  ask:
     MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "Velo가 실행 중입니다. 먼저 닫은 뒤 [확인]을 누르세요." IDOK ok
     Abort
   ok:
@@ -57,21 +63,38 @@ FunctionEnd
 
 Section "설치"
   SetOutPath "$INSTDIR"
-  File "${SRCDIR}\CutRoom.exe"
+  File "${SRCDIR}\Velo.exe"
   File "${SRCDIR}\resources.neu"
   File /oname=읽어주세요.txt "${SRCDIR}\README-first.txt"
-  File /oname=CutRoom.ico "${SRCDIR}\CutRoom.ico"
+  File "${SRCDIR}\Velo.ico"
 
+
+  ; ---- 예전 '컷룸'(CutRoom) 설치본 옮기기: 작품 데이터를 그대로 가져오고 예전 아이콘을 지운다
+  StrCpy $1 "$LOCALAPPDATA\Programs\CutRoom"
+  StrCmp $1 $INSTDIR mig_done
+  IfFileExists "$1\*.*" 0 mig_done
+    IfFileExists "$1\.storage\*.*" 0 +3
+      CreateDirectory "$INSTDIR\.storage"
+      CopyFiles /SILENT "$1\.storage\*.*" "$INSTDIR\.storage"
+    IfFileExists "$1\CutRoom.exe.WebView2\*.*" 0 +2
+      Rename "$1\CutRoom.exe.WebView2" "$INSTDIR\Velo.exe.WebView2"
+    RMDir /r "$1"
+  mig_done:
+  Delete "$DESKTOP\컷룸.lnk"
+  Delete "$SMPROGRAMS\컷룸\*.lnk"
+  RMDir "$SMPROGRAMS\컷룸"
+  DeleteRegKey HKCU "${OLDKEY}"
+  DeleteRegKey HKCU "Software\CutRoom"
   CreateDirectory "$SMPROGRAMS\Velo"
-  CreateShortCut "$SMPROGRAMS\Velo\Velo.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\CutRoom.ico" 0
+  CreateShortCut "$SMPROGRAMS\Velo\Velo.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\Velo.ico" 0
   CreateShortCut "$SMPROGRAMS\Velo\Velo 제거.lnk" "$INSTDIR\uninstall.exe"
-  CreateShortCut "$DESKTOP\Velo.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\CutRoom.ico" 0
+  CreateShortCut "$DESKTOP\Velo.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\Velo.ico" 0
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
-  WriteRegStr HKCU "Software\CutRoom" "InstallDir" "$INSTDIR"
+  WriteRegStr HKCU "Software\Velo" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${REGKEY}" "DisplayName" "Velo 영상 편집기"
   WriteRegStr HKCU "${REGKEY}" "DisplayVersion" "${APPVER}"
-  WriteRegStr HKCU "${REGKEY}" "DisplayIcon" "$INSTDIR\CutRoom.ico"
+  WriteRegStr HKCU "${REGKEY}" "DisplayIcon" "$INSTDIR\Velo.ico"
   WriteRegStr HKCU "${REGKEY}" "Publisher" "${PUBLISHER}"
   WriteRegStr HKCU "${REGKEY}" "URLInfoAbout" "${SITE}"
   WriteRegStr HKCU "${REGKEY}" "InstallLocation" "$INSTDIR"
@@ -88,7 +111,7 @@ Section "Uninstall"
   Delete "$INSTDIR\${APPEXE}"
   Delete "$INSTDIR\resources.neu"
   Delete "$INSTDIR\읽어주세요.txt"
-  Delete "$INSTDIR\CutRoom.ico"
+  Delete "$INSTDIR\Velo.ico"
   Delete "$INSTDIR\uninstall.exe"
   Delete "$INSTDIR\.storage\*.*"
   RMDir "$INSTDIR\.storage"
@@ -98,5 +121,5 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\Velo"
   Delete "$DESKTOP\Velo.lnk"
   DeleteRegKey HKCU "${REGKEY}"
-  DeleteRegKey HKCU "Software\CutRoom"
+  DeleteRegKey HKCU "Software\Velo"
 SectionEnd

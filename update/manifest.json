@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "Velo 리브랜딩, 새 애니메이션 6종, 키프레임 토글, 자막 미리보기"
+    "notes": "큰 영상 깜빡임 수정, 불러오기 로딩바, Velo 앱 아이콘"
   }
 }
