@@ -448,7 +448,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const CUTROOM_VERSION='1.4.3';
+const CUTROOM_VERSION='1.4.4';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -3191,15 +3191,16 @@ function editOnCanvas(id,selectAll){
   editId=id;
   const ta=h('textarea');ta.id='cvEdit';ta.value=c.text;ta.spellcheck=false;
   const fs=c.size*H/1080*k*sc;
-  Object.assign(ta.style,{left:(r.left+b.x*k)+'px',top:(r.top+b.y*k)+'px',width:Math.max(160,b.w*k+20)+'px',minHeight:Math.max(36,b.h*k)+'px',
+  Object.assign(ta.style,{left:(r.left+b.x*k)+'px',top:(r.top+b.y*k)+'px',width:Math.max(160,b.w*k+20)+'px',
     font:`${c.bold?800:500} ${fs}px "${c.font}","Noto Sans KR",sans-serif`,lineHeight:c.lead,color:c.grad?c.g1:c.fill,textAlign:c.align,letterSpacing:(c.track*H/1080*k*sc)+'px'});
   const bar=richBar(()=>ta,id,'');bar.id='cvBar';
   const done=h('button','primary','완료');done.onmousedown=e=>e.preventDefault();done.onclick=()=>endCanvasEdit();bar.append(done);
   document.body.append(ta,bar);
   const bw=Math.max(160,b.w*k+24),bcx=r.left+(b.x+b.w/2)*k,bcy=r.top+(b.y+b.h/2)*k;
-  const place=()=>{ta.style.width=bw+'px';
-    ta.style.left=(c.align==='left'?r.left+b.x*k-12:c.align==='right'?r.left+(b.x+b.w)*k+12-bw:bcx-bw/2)+'px';
-    ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.style.top=(bcy-ta.offsetHeight/2)+'px';const tr=ta.getBoundingClientRect();
+  ta.rows=1;ta.style.whiteSpace='pre';ta.wrap='off';ta.style.overflow='hidden';
+  const place=()=>{ta.style.width=bw+'px';ta.style.width=Math.max(bw,ta.scrollWidth+6)+'px';const bw2=ta.offsetWidth;
+    ta.style.left=(c.align==='left'?r.left+b.x*k-12:c.align==='right'?r.left+(b.x+b.w)*k+12-bw2:bcx-bw2/2)+'px';
+    const nl=Math.max(1,ta.value.split('\n').length),th2=nl*fs*(+c.lead||1.2),pv=Math.max(2,(Math.max(36,b.h*k)-th2)/2);ta.style.paddingTop=ta.style.paddingBottom=pv+'px';ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';ta.style.top=(bcy-ta.offsetHeight/2)+'px';const tr=ta.getBoundingClientRect();
     bar.style.left=Math.max(8,Math.min(innerWidth-bar.offsetWidth-8,tr.left))+'px';bar.style.top=Math.max(8,tr.top-bar.offsetHeight-6)+'px';};
   trackSel(ta);
   ta.oninput=()=>{touch('cvt'+id);const cc=byId(id);if(!cc)return;setText(cc,ta.value);loadFont(cc);place();tlSoon();};
@@ -3399,7 +3400,8 @@ function updBar(v,notes){
   const r=h('button','primary','지금 다시 시작'),l=h('button','mini','나중에');
   r.onclick=async()=>{r.disabled=true;r.textContent='다시 시작하는 중…';try{if(cur)await saveNow(true);await Neutralino.app.restartProcess();}catch(e){toast('다시 시작하지 못했습니다. 앱을 닫았다 열어 주세요.');}};
   l.onclick=()=>b.remove();
-  b.append(r,l);document.body.append(b);
+  const pn=h('button','mini','바뀐 점 보기');pn.onclick=()=>{const u='https://yoonslog.github.io/cutroom/patch-notes/';try{if(window.Neutralino&&Neutralino.os)Neutralino.os.open(u);else open(u,'_blank');}catch(e){open(u,'_blank');}};
+  b.append(r,pn,l);document.body.append(b);
 }
 async function checkUpdate(manual){
   if(!(window.Neutralino&&Neutralino.updater)){if(manual)toast('업데이트 기능을 쓸 수 없습니다. 홈페이지에서 새 버전을 받아 주세요.');return;}

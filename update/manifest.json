@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "모션 트래킹(대상 자동 따라가기), 입체 글자(3D 돌출), 게임 일차 제목 템플릿"
+    "notes": "화면에서 자막을 고칠 때 위로 올라가던 오류 수정, 영상으로 보는 패치 노트"
   }
 }

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>컷룸 패치 노트 · 업데이트 내역</title>
+<style>
+/* 한 화면 소개 → 영상 → 기능 3개 → 다운로드 상세 → 바뀐 점. 컷룸 앱과 같은 어두운 회청색과 민트 강조색. */
+:root{
+  color-scheme:dark;
+  --bg:#111318;--panel:#1c1f27;--panel2:#262a35;--line:#343a49;
+  --text:#f2f4f8;--dim:#aab1c1;--accent:#2fd5c5;--accent2:#4f7dff;--ink:#04201d;
+  --display:"Black Han Sans","IBM Plex Sans KR",sans-serif;--body:"IBM Plex Sans KR",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.65 var(--body)}
+a{color:var(--accent)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+nav{display:flex;align-items:center;gap:18px;padding:18px 0}
+nav .brand{font:28px var(--display);margin-right:auto;letter-spacing:.02em}
+nav .brand b{color:var(--accent);font-weight:400}
+nav a{color:var(--dim);text-decoration:none;font-size:15px}
+nav a:hover{color:var(--text)}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:40px;align-items:center;padding:28px 0 56px}
+.hero h1{font:clamp(40px,6vw,68px)/1.08 var(--display);margin:0 0 16px;text-wrap:balance}
+.hero h1 span{background:linear-gradient(100deg,#25f0d8,#4f7dff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--dim);margin:0 0 26px;max-width:34em;font-size:17px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:12px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--text);background:var(--panel)}
+.btn.primary{background:linear-gradient(110deg,#25f0d8,#22d0e6 50%,#4f7dff);color:#061016;border:0}
+.btn small{display:block;font-weight:400;font-size:12.5px;opacity:.8}
+.btn:hover{filter:brightness(1.06)}
+.meta{font-size:13.5px;color:var(--dim);margin-top:14px;font-variant-numeric:tabular-nums}
+.video{border-radius:16px;overflow:hidden;background:#000;box-shadow:0 0 0 1px var(--line),0 30px 80px -30px #000}
+.video video{display:block;width:100%;aspect-ratio:16/9}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section h2{font:32px var(--display);margin:0 0 8px;font-weight:400}
+section .lead{color:var(--dim);margin:0 0 28px}
+.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.feat{background:var(--panel);border-radius:14px;overflow:hidden}
+.feat img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.feat div{padding:16px 18px 20px}
+.feat h3{margin:0 0 6px;font-size:18px}
+.feat p{margin:0;color:var(--dim);font-size:15px}
+.list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 32px;padding:0;margin:0;list-style:none}
+.list li{padding:10px 0;border-bottom:1px solid var(--line);color:var(--dim)}
+.list li b{color:var(--text);font-weight:600;margin-right:8px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding:0;margin:0;list-style:none}
+.steps li{background:var(--panel);border-radius:14px;padding:20px}
+.steps li::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--ink);font-weight:700;margin-bottom:10px}
+.steps h3{margin:0 0 6px;font-size:17px}
+.steps p{margin:0;color:var(--dim);font-size:14.5px}
+.log{background:var(--panel);border-radius:14px;padding:20px 24px}
+.log h3{margin:0 0 6px;font-size:17px}
+.log h3 span{font-size:13px;color:var(--dim);font-weight:400;margin-left:8px}
+.log ul{margin:0;padding-left:20px;color:var(--dim)}
+footer{padding:32px 0 48px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
+@media (max-width:860px){.hero{grid-template-columns:1fr}.feats,.steps{grid-template-columns:1fr}.list{grid-template-columns:1fr}nav a.hide{display:none}}
+
+.pn{background:var(--panel);border-radius:16px;padding:22px 24px;margin:0 0 22px}
+.pnh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pnh h2{margin:0;font-size:20px}.ver{background:var(--accent);color:var(--ink);font-weight:800;border-radius:8px;padding:3px 10px;font-size:14px}
+.date{color:var(--dim);font-size:13px;margin-left:auto}
+.pn video{width:100%;border-radius:12px;background:#000;display:block;margin-bottom:14px;aspect-ratio:1280/740}
+.pn ul{margin:0;padding-left:20px;color:var(--dim);line-height:1.7}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 26px}.toc a{padding:5px 10px;border-radius:8px;background:var(--panel);text-decoration:none;font-size:13px}
+</style></head><body><div class="wrap">
+<nav><div class="brand"><a href="../" style="color:inherit;text-decoration:none"><b>컷</b>룸</a></div><a class="hide" href="../#download">다운로드</a><a href="../app/">웹에서 열기</a></nav>
+<h1 style="margin:30px 0 4px">패치 노트 · 업데이트 내역</h1>
+<p style="color:var(--dim);margin:0">버전마다 바뀐 점을 짧은 영상과 함께 정리했습니다. 설치한 앱은 새 버전을 자동으로 받습니다.</p>
+<div class="toc"><a href="#v1.4.4">v1.4.4</a><a href="#v1.4.3">v1.4.3</a><a href="#v1.4.2">v1.4.2</a><a href="#v1.4.1">v1.4.1</a><a href="#v1.4.0">v1.4.0</a><a href="#v1.3.0">v1.3.0</a><a href="#v1.2.0">v1.2.0</a><a href="#v1.1.0">v1.1.0</a></div>
+<article class="pn" id="v1.4.4">
+  <div class="pnh"><span class="ver">v1.4.4</span><h2>자막 편집 위치 오류 수정</h2><span class="date">2026년 11월 22일</span></div>
+  <video src="../media/patch/v144.mp4" poster="../media/patch/v144.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>프로그램 모니터에서 자막을 두 번 눌러 고칠 때 글자가 위로 올라가 보이던 오류 수정 — 입력 칸이 실제 자막 자리에 그대로 겹칩니다</li>
+        <li>입력 칸이 한 줄짜리 자막을 두 줄 높이로 잡던 문제, 긴 자막이 입력 칸 안에서 멋대로 줄바뀜되던 문제 수정</li>
+        <li>패치 노트 페이지 추가 — 버전마다 바뀐 기능을 짧은 영상으로 볼 수 있습니다</li>
+      </ul>
+</article><article class="pn" id="v1.4.3">
+  <div class="pnh"><span class="ver">v1.4.3</span><h2>모션 트래킹 · 입체 글자</h2><span class="date">2026년 11월 22일</span></div>
+  <video src="../media/patch/v143.mp4" poster="../media/patch/v143.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li><b>모션 트래킹</b>: 자막·스티커·모양을 고르고 효과 컨트롤 → "화면에서 대상 고르기"로 대상을 네모로 감싸면, 영상을 분석해 그 대상을 자동으로 따라다닙니다</li>
+        <li><b>입체 글자(3D 돌출)</b>: 기본 그래픽 → 입체 글자에서 두께 · 방향 · 앞뒤 색을 조절</li>
+        <li>새 자막 템플릿: <b>게임 일차 제목</b>(노랑→주황 그라데이션 + 검은 입체, "1일차" 스타일), <b>입체 팝 제목</b></li>
+      </ul>
+</article><article class="pn" id="v1.4.2">
+  <div class="pnh"><span class="ver">v1.4.2</span><h2>키프레임 가속 · 애니메이션 컨트롤</h2><span class="date">2026년 11월 22일</span></div>
+  <video src="../media/patch/v142.mp4" poster="../media/patch/v142.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>키프레임 가속: 타임라인의 키프레임(◆)을 우클릭하면 선형 · 천천히 시작 · 천천히 끝 · 부드럽게 · 튕김 · 정지 등으로 바꿉니다</li>
+        <li>효과 컨트롤 옆에 <b>애니메이션 컨트롤</b> 탭 — 노란 점을 끌어 가속 곡선을 직접 조절하고, 움직이는 공으로 바로 확인합니다</li>
+        <li>자막이 화면 폭을 넘으면 자동으로 줄을 바꿉니다 (기본 그래픽 → 텍스트 → 자동 줄바꿈 · 줄 최대 폭)</li>
+        <li>문자 도구(T)로 자막을 누르면 새 자막이 겹쳐 생기던 오류, Esc 뒤에도 문자 도구가 남던 오류 수정</li>
+        <li>예시 프로젝트 · 쇼츠 · 노래방 시작 화면에 엉뚱한 템플릿(숫자 카운터)이 들어가던 오류 수정</li>
+        <li>화면에서 자막을 고칠 때 입력 칸이 자막 자리에 정확히 겹치도록 수정, 빈 자막은 자동으로 지움</li>
+        <li>긴 영상 · 많은 클립에서 타임라인이 가볍게 — 파형 · 썸네일을 다시 그리지 않고 재사용</li>
+      </ul>
+</article><article class="pn" id="v1.4.1">
+  <div class="pnh"><span class="ver">v1.4.1</span><h2>설치 파일 · 대용량 · 실시간 미리보기</h2><span class="date">2026년 11월 21일</span></div>
+  <video src="../media/patch/v141.mp4" poster="../media/patch/v141.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>Windows 설치 파일(CutRoom-Setup.exe) 추가 — 바탕화면 · 시작 메뉴 아이콘, 설정 → 앱에서 제거</li>
+        <li>새 버전을 앱이 알아서 받아 두고, 받으면 "지금 다시 시작" 알림만 띄웁니다</li>
+        <li>큰 영상 파일 끊김 해결: 재생 위치 근처 클립만 메모리에 올리고 먼 클립은 자동으로 내립니다</li>
+        <li>타임라인을 축소하면 아무리 긴 영상도 트랙 전체가 한 화면에 들어옵니다</li>
+        <li>자막 편집 탭에 실시간 미리보기 — 색 · 글꼴 · 선 · 그림자를 바꾸면 바로 보이고, 누르면 배경색이 바뀝니다</li>
+      </ul>
+</article><article class="pn" id="v1.4.0">
+  <div class="pnh"><span class="ver">v1.4.0</span><h2>컷룸 스튜디오 (이미지 편집 · 애니메이션)</h2><span class="date">2026년 11월 21일</span></div>
+  <video src="../media/patch/v140.mp4" poster="../media/patch/v140.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>컷룸 스튜디오: 썸네일 · 이미지 편집기 (레이어, 글자 스타일 12종, 이중 외곽선, 강조 단어 색, 도형 15종, 스티커)</li>
+        <li>사진 배경 지우기, 스티커 외곽선, 색 보정, 모양 자르기, 유튜브 시간 표시 안전 영역, 작게 보기</li>
+        <li>이미지 애니메이션: 등장 · 반복 · 퇴장 움직임, 타임라인, GIF · MP4 · WebM으로 저장</li>
+        <li>유튜브 · 쇼츠 · 인스타 · 채널 아트 · 애니메이션 템플릿 20종</li>
+        <li>편집기에서 📸 지금 장면으로 썸네일 만들기, 스튜디오 결과를 타임라인으로 바로 보내기</li>
+      </ul>
+</article><article class="pn" id="v1.3.0">
+  <div class="pnh"><span class="ver">v1.3.0</span><h2>프로 편집기 타임라인</h2><span class="date">2026년 11월 21일</span></div>
+  <video src="../media/patch/v130.mp4" poster="../media/patch/v130.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>프로 편집기 스타일 타임라인: 타임코드, 트랙 잠금·표시·M/S, 필름스트립, 오디오 파형, 마커</li>
+        <li>dB / LUFS 레벨 미터, 고해상도 미리보기 글자</li>
+      </ul>
+</article><article class="pn" id="v1.2.0">
+  <div class="pnh"><span class="ver">v1.2.0</span><h2>요소 · 카운터 · 그라데이션</h2><span class="date">2026년 11월 21일</span></div>
+  <video src="../media/patch/v120.mp4" poster="../media/patch/v120.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>요소: 진행 바·로딩 바·자막 배경 바·강조 밑줄·도형, 아이콘 22종</li>
+        <li>1씩 굴러 올라가는 숫자 카운터, 구독자 카운터 템플릿</li>
+        <li>그라데이션에 색을 원하는 만큼 추가 (선형·원형)</li>
+        <li>화면 배치: 패널 경계를 끌어 크기 조절, 모니터·타임라인 위치 바꾸기</li>
+        <li>영상 트랙 V1~V5로 확장</li>
+      </ul>
+</article><article class="pn" id="v1.1.0">
+  <div class="pnh"><span class="ver">v1.1.0</span><h2>계정 · 공동 작업 · 쇼츠 자막</h2><span class="date">2026년 11월 21일</span></div>
+  <video src="../media/patch/v110.mp4" poster="../media/patch/v110.jpg" controls muted loop playsinline preload="none"></video>
+  <ul>
+        <li>컷룸 계정으로 회원가입·로그인, 아이디로 공동 작업 초대</li>
+        <li>공동 작업자의 마우스가 미리보기와 타임라인에 보임</li>
+        <li>굵은 쇼츠 자막체(프리텐다드)와 "굵은 쇼츠 자막" 템플릿</li>
+        <li>통통 튀기·확대 애니메이션이 자기 자리에서 나오도록 수정</li>
+        <li>앱 자동 업데이트</li>
+      </ul>
+</article>
+<footer>컷룸 · 만든 사람 PixelNeon · <a href="https://github.com/yoonslog/cutroom">GitHub</a></footer>
+</div>
+<script>document.querySelectorAll('.pn video').forEach(v=>{const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){v.preload='auto';v.play().catch(()=>{});}else v.pause();}),{threshold:.5});io.observe(v);});</script>
+</body></html>
