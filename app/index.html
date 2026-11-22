@@ -3646,7 +3646,7 @@ applyLayout();
 (async()=>{
   renderQuick();renderSide();renderHome();requestAnimationFrame(frame);
   if(window.Neutralino&&Neutralino.init){try{Neutralino.init();
-    Neutralino.events.on('windowClose',async()=>{try{if(cur){const th=thumbNow();if(th)cur.thumb=th;await saveNow(true);}}catch(e){}p2pReset();Neutralino.app.exit();});}catch(e){}}
+    Neutralino.events.on('windowClose',async()=>{try{if(cur){const th=thumbNow();if(th)cur.thumb=th;await saveNow(true);}}catch(e){}try{p2pReset();}catch(e){}try{await Neutralino.app.exit();}catch(e){window.close();}});}catch(e){}}
   $('bLogin').onclick=()=>fb.on?fbAuthDialog():(IS_APP||CAN_P2P)?appLogin():siteLogin();$('bJoin').onclick=()=>p2pDialog();
   if(window.CUTROOM_USE_CLAUDE)await initStore();
   if(store.mode!=='cloud')await initFirebase();
