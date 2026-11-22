@@ -205,6 +205,13 @@ body.picking #cv{cursor:crosshair}
 .clip .strip{position:absolute;left:0;right:0;top:18px;bottom:0;display:flex;overflow:hidden;pointer-events:none}
 .clip .strip i{flex:0 0 auto;height:100%;background:#000 center/cover;border-right:1px solid #0006}
 .clip canvas.wv{position:absolute;left:0;top:18px;pointer-events:none}
+.clip .vline{position:absolute;left:0;right:0;height:9px;margin-top:-4px;cursor:ns-resize;z-index:4}
+.clip .vline:before{content:'';position:absolute;left:0;right:0;top:4px;height:2px;background:#ffd84a;opacity:.85}
+.clip .vline:hover:before,.clip .vline.on:before{opacity:1;height:3px}
+.clip .vtip{position:absolute;right:4px;top:-14px;font-size:10px;color:#ffd84a;display:none;background:#000a;padding:0 3px;border-radius:3px}
+.clip .vline:hover .vtip,.clip .vline.on .vtip{display:block}
+.th-rz{position:absolute;left:0;right:0;bottom:-3px;height:6px;cursor:ns-resize;z-index:5}
+.th-rz:hover{background:#4f8cff88}
 .clip.video{background:#24597d} .clip.image,.clip.sample{background:var(--c-still)} .clip.text{background:var(--c-text)}
 .clip.shape{background:#c98a2e} .clip.adj{background:var(--c-adj)} .clip.audio{background:#1f4a66}
 .clip.audio.music{background:#3f5f20}
@@ -456,7 +463,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const VELO_VERSION='1.5.3';
+const VELO_VERSION='1.5.4';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -725,9 +732,9 @@ function sync(){
     if(on){
       const want=c.in+u*c.speed;
       if(fwd){
-        const r=clamp(c.speed*rate,.07,16);if(el.playbackRate!==r)el.playbackRate=r;
-        const lim=isFinite(el.duration)?el.duration-.06:1e9;
-        if(Math.abs(el.currentTime-want)>(el.readyState<3?1.2:.45)&&!el.seeking&&want<lim)el.currentTime=want;
+        const lim=isFinite(el.duration)?el.duration-.06:1e9,dv=want-el.currentTime;
+        const r=clamp(c.speed*rate*(Math.abs(dv)>.04?1+clamp(dv,-.1,.1):1),.07,16);if(Math.abs(el.playbackRate-r)>.005)el.playbackRate=r;
+        if(Math.abs(dv)>(el.readyState<3?1.5:.8)&&!el.seeking&&want<lim)el.currentTime=want;
         if(el.paused&&!el.ended&&want<lim)el.play().catch(()=>{});
       }else{
         if(!el.paused)el.pause();
@@ -1022,7 +1029,7 @@ function frameOf(c){
     if(ok){const vw=el.videoWidth,vh=el.videoHeight,q=Math.min(1,1280/vw);
       if(!m.fc){m.fc=document.createElement('canvas');m.fg=m.fc.getContext('2d');}
       if(m.fc.width!==Math.round(vw*q)){m.fc.width=Math.round(vw*q);m.fc.height=Math.round(vh*q);}
-      if(m.ft!==el.currentTime){try{m.fg.drawImage(el,0,0,m.fc.width,m.fc.height);m.ft=el.currentTime;m.fw=vw;m.fh=vh;m.fq=q;}catch(e){}}
+      if(m.ft!==el.currentTime&&(!playing||!m.fct||performance.now()-m.fct>300)){m.fct=performance.now();try{m.fg.drawImage(el,0,0,m.fc.width,m.fc.height);m.ft=el.currentTime;m.fw=vw;m.fh=vh;m.fq=q;}catch(e){}}
       lastFrames.set(c.src,m);return [el,vw,vh,1];}
     const lf=m.ft!=null?m:lastFrames.get(c.src);
     if(lf&&lf.ft!=null){waitingVid=true;return [lf.fc,lf.fw,lf.fh,lf.fq];}
@@ -1141,14 +1148,30 @@ function drawPreviews(now){
 }
 
 /* ================= 재생 루프 ================= */
+// 큰 영상은 화면 영상을 기준 시계로 삼는다: 타임라인이 영상을 쫓아가 탐색(seek)하지 않으니 흔들림·멈칫이 없다.
+let bufSince=0;
+function masterClock(){
+  if(exporting||rate<=0)return null;
+  let best=null;
+  for(const c of P.clips){if(c.kind!=='video'||P.off[c.tr])continue;const u=t-c.start;if(u<0||u>=dur(c))continue;
+    const m=els.get(c.id)||mediaFor(c);if(!m)continue;if(!best||VT.indexOf(c.tr)>VT.indexOf(best.c.tr))best={c,m};}
+  if(!best){bufSince=0;return null;}
+  const el=best.m.el,c=best.c,now=performance.now();
+  if(el.ended||t>end(c)-.08||(isFinite(el.duration)&&el.currentTime>el.duration-.1)){bufSince=0;return null;}
+  if(el.seeking||el.readyState<3||el.paused){if(!bufSince)bufSince=now;if(now-bufSince<4000)return false;bufSince=0;return null;}
+  bufSince=0;const vt=c.start+(el.currentTime-c.in)/c.speed;
+  if(Math.abs(vt-t)>.6)return null;
+  return Math.max(t-.002,vt);
+}
 let lastNow=performance.now(),liveUpd=[];
 function frame(now){
   const dt=Math.min(.1,(now-lastNow)/1000);lastNow=now;
   if(cur){
     if(playing){
-      t+=dt*rate;
+      const mc=masterClock();
+      if(mc===null)t+=dt*rate;else if(mc!==false)t=mc;
       if(t>=total){t=total;const wasExp=exporting;setPlaying(false);if(wasExp)finishExport();}
-      else if(t<=0){t=0;setPlaying(false);}
+      else if(t<=0&&rate<0){t=0;setPlaying(false);}else if(t<0)t=0;
     }
     waitingVid=false;sync();draw();updPlayhead();
     {const lo=$('vload');if(lo){if(waitingVid){if(!waitSince)waitSince=now;}else waitSince=0;const show=waitSince&&now-waitSince>250;if(lo.classList.contains('on')!==!!show)lo.classList.toggle('on',!!show);}}
@@ -1172,7 +1195,7 @@ function updPlayhead(){
 }
 
 /* ================= 타임라인 ================= */
-const RH={V:46,A:54};
+const RH={V:46,A:54};try{Object.assign(RH,JSON.parse(localStorage.getItem('velo-rh')||'{}'));}catch(e){}
 const TRN={V:'Video',A:'Audio'};
 const IC_LOCK='<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',IC_UNLOCK='<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></svg>',IC_EYE='<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>',IC_EYEOFF='<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3 3.6M6.6 6.6A17 17 0 0 0 2 12s3.6 6 10 6a9.6 9.6 0 0 0 4.4-1"/></svg>';
 const tcf4=s=>{s=Math.max(0,s);const f=Math.round(s*P.fps),fr=f%P.fps,ss=Math.floor(f/P.fps);return [Math.floor(ss/3600),Math.floor(ss/60)%60,ss%60,fr].map(x=>String(x).padStart(2,'0')).join(':');};
@@ -1227,7 +1250,14 @@ function renderTimeline(){
       ey.onclick=()=>{pushHistory();P.off[tr]=!P.off[tr];renderTimeline();};hd.append(ey);}
     else{const mu=h('button','th-ic ms'+(P.off[tr]?' on':''),'M');mu.title='음소거';mu.onclick=()=>{pushHistory();P.off[tr]=!P.off[tr];renderTimeline();};
       const so=h('button','th-ic ms solo'+(P.solo[tr]?' on':''),'S');so.title='솔로 (이 트랙만 듣기)';so.onclick=()=>{pushHistory();P.solo[tr]=!P.solo[tr];renderTimeline();};hd.append(mu,so);}
-    hd.append(h('span','th-name',`${TRN[fam]} ${tr.slice(1)}`));head.append(hd);
+    hd.append(h('span','th-name',`${TRN[fam]} ${tr.slice(1)}`));
+    {hd.style.position='relative';const rz=h('div','th-rz');rz.title='끌어서 트랙 높이 조절 (두 번 누르면 기본값)';
+      rz.onpointerdown=e=>{e.preventDefault();e.stopPropagation();const sy=e.clientY,o=RH[fam];
+        const mv=ev=>{RH[fam]=Math.round(clamp(o+ev.clientY-sy,30,160));renderTimeline();};
+        const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);try{localStorage.setItem('velo-rh',JSON.stringify(RH));}catch(e){}};
+        addEventListener('pointermove',mv);addEventListener('pointerup',up);};
+      rz.ondblclick=()=>{RH.V=46;RH.A=54;try{localStorage.setItem('velo-rh',JSON.stringify(RH));}catch(e){}renderTimeline();};hd.append(rz);}
+    head.append(hd);
     if(P.lock[tr])d.classList.add('lock');
     d.oncontextmenu=e=>{if(e.target!==d)return;e.preventDefault();const at=timeAt(e);
       ctxMenu(e,[{n:'여기에 붙여넣기',k:kl('paste'),f:()=>pasteClips(at),off:!clipBoard},tr[0]==='V'?{n:'여기에 자막 추가',f:()=>{seek(at);addTextAt();}}:null,{n:'재생 헤드를 여기로',f:()=>seek(at)},null,{n:'모두 선택',k:kl('selAll'),f:()=>ACT.selAll.fn()}].filter(x=>x!==null||true));};
@@ -1243,7 +1273,14 @@ function renderTimeline(){
     const el=h('div','clip '+c.kind+(selIds.has(c.id)?' sel':''));el.dataset.id=c.id;
     el.style.left=(c.start*pps)+'px';el.style.width=Math.max(5,d*pps-1)+'px';
     el.append(h('div','hdr'));
-    if(c.kind==='audio'){if(s&&s.type==='audio')el.classList.add('music');const wv=waveCanvas(c,s,d);if(wv)el.append(wv);}
+    if(c.kind==='audio'){if(s&&s.type==='audio')el.classList.add('music');const wv=waveCanvas(c,s,d);if(wv)el.append(wv);
+      if(typeof c.vol==='number'){const top=18,span=RH.A-4-top-3,vl=h('div','vline');vl.style.top=(top+(1-c.vol/200)*span)+'px';
+        const tip=h('span','vtip',Math.round(c.vol)+'%');vl.append(tip);vl.title='위아래로 끌어서 볼륨 조절 (두 번 누르면 100%)';
+        vl.onpointerdown=e=>{e.stopPropagation();if(e.button)return;e.preventDefault();pushHistory();const id=c.id,sy=e.clientY,o=c.vol;vl.classList.add('on');
+          const mv=ev=>{const cc=byId(id);if(!cc)return;cc.vol=Math.round(clamp(o-(ev.clientY-sy)/span*200,0,200));vl.style.top=(top+(1-cc.vol/200)*span)+'px';tip.textContent=cc.vol+'%';};
+          const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);vl.classList.remove('on');renderTimeline();refresh(true);};
+          addEventListener('pointermove',mv);addEventListener('pointerup',up);};
+        vl.ondblclick=e=>{e.stopPropagation();pushHistory();c.vol=100;renderTimeline();refresh(true);};el.append(vl);}}
     else if(s&&(s.type==='video'||s.type==='image')&&(s.strip||s.thumb)){const st=h('div','strip'),hh2=RH.V-22,tw=Math.max(24,Math.round(hh2*16/9)),n=Math.min(200,Math.ceil(d*pps/tw));
       for(let i=0;i<n;i++){const x=h('i');x.style.width=tw+'px';const tt=c.in+(i*tw/pps)*c.speed;x.style.backgroundImage=`url(${stripAt(s,tt)})`;st.append(x);}el.append(st);}
     else if(c.kind==='text'&&c.text){const pv=h('div','tpv');pv.style.cssText='position:absolute;left:4px;top:18px;right:4px;bottom:2px;font:11px/1.2 sans-serif;color:#ffffffaa;overflow:hidden;pointer-events:none;white-space:nowrap;text-overflow:ellipsis';
@@ -3560,6 +3597,14 @@ async function checkUpdate(manual){
 if(IS_APP)setInterval(()=>checkUpdate(),3*3600*1000);
 /* ================= 앱 내 패치 노트 ================= */
 const PATCH_NOTES=[
+  ['1.5.4','2026-11-22','큰 영상 끊김 없는 재생 · 오디오 볼륨선 · 새 로고',[
+    '19GB 같은 큰 영상에서 화면이 흔들리고 멈칫하던 문제 수정 — 재생 시계를 영상에 맞춰 억지 건너뛰기(탐색)를 없앰',
+    '어긋남은 재생 속도를 살짝 조절해 맞추고, 디코딩이 밀리면 잠깐 기다렸다가 이어서 재생',
+    '재생 중 프레임 복사 부담을 줄여 미리보기가 더 부드러움',
+    '타임라인 오디오 클립의 노란 볼륨선을 위아래로 끌어 볼륨 조절 (두 번 누르면 100%)',
+    '트랙 이름 칸 아래 경계를 끌어 트랙 높이 조절 (두 번 누르면 기본값)',
+    '새 원자 로고 적용',
+  ]],
   ['1.5.3','2026-11-22','최대 30GB 영상 지원',[
     '1GB가 넘는 영상은 브라우저 저장소에 복사하지 않고 원본 파일을 바로 사용 — 30GB 영상도 바로 열림',
     '작품을 다시 열면 "허용하고 연결" 한 번으로 원본 파일에 다시 연결',
