@@ -448,7 +448,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const CUTROOM_VERSION='1.4.4';
+const CUTROOM_VERSION='1.5.0';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -615,6 +615,39 @@ try{const AC=window.AudioContext||window.webkitAudioContext;actx=new AC();master
   streamDest=actx.createMediaStreamDestination();master.connect(streamDest);}catch(e){actx=null;}
 function wake(){if(actx&&actx.state==='suspended')actx.resume().catch(()=>{});}
 addEventListener('pointerdown',wake,true);addEventListener('keydown',wake,true);
+/* ===== 효과음·배경음 합성 ===== */
+function synthBuf(dur,fn){const sr=actx?actx.sampleRate:44100,len=Math.floor(sr*dur),ac=actx||new(window.AudioContext||window.webkitAudioContext)(),b=ac.createBuffer(1,len,sr),d=b.getChannelData(0);fn(d,sr,len);return b;}
+function env(t,a,dc,s,r,dur){if(t<a)return t/a;if(t<a+dc)return 1-(1-s)*(t-a)/dc;if(t<dur-r)return s;return s*(dur-t)/r;}
+function sfxPop(){return synthBuf(.15,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=Math.sin(2*Math.PI*(800-3000*t)*t)*Math.exp(-t*30)*.7;}});}
+function sfxDing(){return synthBuf(.6,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=(Math.sin(2*Math.PI*1200*t)+.3*Math.sin(2*Math.PI*2400*t))*Math.exp(-t*5)*.5;}});}
+function sfxWhoosh(){return synthBuf(.35,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=(Math.random()*2-1)*Math.sin(Math.PI*t/.35)*.4*Math.exp(-t*3);}});}
+function sfxTick(){return synthBuf(.05,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=Math.sin(2*Math.PI*3500*t)*Math.exp(-t*80)*.8;}});}
+function sfxDrum(){return synthBuf(.4,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=Math.sin(2*Math.PI*(120-80*t)*t)*Math.exp(-t*8)*.9;}});}
+function sfxHihat(){return synthBuf(.1,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;const nz=Math.random()*2-1;const bp=Math.sin(2*Math.PI*8000*t);d[i]=nz*bp*Math.exp(-t*40)*.5;}});}
+function sfxBounce(){return synthBuf(.3,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=Math.sin(2*Math.PI*(600+400*Math.sin(20*t))*t)*Math.exp(-t*10)*.6;}});}
+function sfxError(){return synthBuf(.3,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=(Math.sin(2*Math.PI*400*t)+Math.sin(2*Math.PI*480*t))*Math.exp(-t*6)*.5;}});}
+function sfxLevelup(){return synthBuf(.5,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;const f=800+600*t/.5;d[i]=(Math.sin(2*Math.PI*f*t)+.4*Math.sin(2*Math.PI*f*2*t))*Math.exp(-t*3)*.5;}});}
+function sfxCoin(){return synthBuf(.25,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;const f=t<.1?2400:3200;d[i]=Math.sin(2*Math.PI*f*t)*Math.exp(-t*12)*.6;}});}
+function sfxLaser(){return synthBuf(.2,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;d[i]=Math.sin(2*Math.PI*(4000-18000*t)*t)*Math.exp(-t*15)*.5;}});}
+function sfxExplosion(){return synthBuf(.6,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;const nz=Math.random()*2-1;d[i]=nz*Math.exp(-t*5)*.8*(Math.sin(2*Math.PI*60*t)*.5+.5);}});}
+function bgmPiano(){return synthBuf(8,(d,sr,n)=>{const notes=[261.6,329.6,392,523.3,392,329.6,261.6,196];const dur=1;for(let i=0;i<n;i++){const t=i/sr;let v=0;for(let ni=0;ni<notes.length;ni++){const st=ni*dur,lt=t-st;if(lt>=0&&lt<dur){const f=notes[ni];v+=(Math.sin(2*Math.PI*f*lt)+.3*Math.sin(2*Math.PI*f*2*lt))*env(lt,.01,.1,.3,.3,dur)*.25;}}d[i]=v;}});}
+function bgmBeat(){return synthBuf(8,(d,sr,n)=>{const bpm=120,beat=60/bpm;for(let i=0;i<n;i++){const t=i/sr;const bt=t%beat;const bar=Math.floor(t/beat)%4;let v=0;if(bar===0||bar===2)v+=Math.sin(2*Math.PI*(80-40*bt)*bt)*Math.exp(-bt*12)*.6;if(bar===1||bar===3)v+=(Math.random()*2-1)*Math.exp(-bt*50)*.3;v+=Math.sin(2*Math.PI*440*(1+bar)*bt)*Math.exp(-bt*20)*.15;d[i]=v*.7;}});}
+function bgmTension(){return synthBuf(8,(d,sr,n)=>{for(let i=0;i<n;i++){const t=i/sr;const lfo=1+.3*Math.sin(2*Math.PI*.5*t);let v=0;v+=Math.sin(2*Math.PI*55*lfo*t)*.3;v+=Math.sin(2*Math.PI*82.5*lfo*t)*.2;v+=(Math.random()*2-1)*.05*Math.sin(Math.PI*2*t/8);const e=Math.sin(Math.PI*t/8);d[i]=v*e*.6;}});}
+function bgmFanfare(){return synthBuf(4,(d,sr,n)=>{const notes=[[0,392,.5],[.5,523.3,.5],[1,659.3,.8],[1.8,784,1.5]];for(let i=0;i<n;i++){const t=i/sr;let v=0;for(const[st,f,dur]of notes){const lt=t-st;if(lt>=0&&lt<dur)v+=(Math.sin(2*Math.PI*f*lt)+.5*Math.sin(2*Math.PI*f*2*lt)+.2*Math.sin(2*Math.PI*f*3*lt))*env(lt,.02,.1,.5,.4,dur)*.2;}d[i]=v;}});}
+function addSynthAudio(name,buf){
+  if(!actx){toast('오디오를 쓸 수 없습니다.');return;}
+  const len=buf.length,ch=buf.numberOfChannels,sr=buf.sampleRate;
+  const wav=new ArrayBuffer(44+len*2);const v=new DataView(wav);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+len*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,len*2,true);
+  const d=buf.getChannelData(0);for(let i=0;i<len;i++){const s=Math.max(-1,Math.min(1,d[i]));v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true);}
+  const blob=new Blob([wav],{type:'audio/wav'}),url=URL.createObjectURL(blob);
+  const sid=uid(),dur=buf.duration;S[sid]={id:sid,name:'🔊 '+name,type:'audio',url,duration:dur};
+  const tr=P.clips.some(c=>c.tr==='A2')?'A2':'A1';
+  const c={id:uid(),kind:'audio',src:sid,tr,start:t,in:0,out:dur,speed:1,...baseA(),atype:'sfx'};
+  pushHistory();P.clips.push(c);selectOnly(c.id);refresh(true);toast(`'${name}' 효과음을 넣었습니다.`);
+}
 const els=new Map();
 function mediaFor(c){
   const s=S[c.src];if(!s||s.offline||!s.url||(s.type!=='video'&&s.type!=='audio'))return null;
@@ -1821,7 +1854,19 @@ const TEMPLATES=[
   ['입체 팝 제목',{y:45,size:170,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#1d1d1d',w:4}],ext:true,extD:20,extA:50,extC:'#ff3d6e',extC2:'#8a0f33',sh:true,shc:'#000000',sho:40,shb:14,shd:8,sha:60,ain:'pop',ainD:.45,text:'입체 제목'}],
   ['무지개 그라데이션',{y:50,size:120,font:'Black Han Sans',grad:true,gstops:[{c:'#ff3d6e',p:0},{c:'#ffb02e',p:25},{c:'#ffe14a',p:45},{c:'#4cd964',p:65},{c:'#2fd5c5',p:82},{c:'#7c8cff',p:100}],strokes:[{c:'#ffffff',w:5}],ain:'pop',text:'무지개 글자'}],
   ['그라데이션 제목',{y:50,size:120,font:'Black Han Sans',grad:true,g1:'#25f0d8',g2:'#4f7dff',gang:0,strokes:[{c:'#ffffff',w:5}],sh:true,shc:'#000000',sho:50,shb:16,shd:6,sha:90,ain:'zoomin',ainD:.5,text:'그라데이션'}],
-  ['이름표',{x:24,y:78,size:46,align:'left',bg:true,bgc:'#2fd5c5',bgo:100,fill:'#04201d',strokes:[],ain:'right',text:'이름 · 소개'}]];
+  ['이름표',{x:24,y:78,size:46,align:'left',bg:true,bgc:'#2fd5c5',bgo:100,fill:'#04201d',strokes:[],ain:'right',text:'이름 · 소개'}],
+  ['마크 서버 자막',{y:82,size:68,font:'Pretendard Black',fill:'#ffffff',strokes:[{c:'#000000',w:10}],sh:true,shc:'#000000',sho:70,shb:4,shd:5,sha:80,ain:'pop',ainD:.25,aout:'fade',aoutD:.2,text:'지하철을 만들겁니다'}],
+  ['마크 큰 제목',{y:50,size:200,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#000000',w:14}],sh:true,shc:'#000000',sho:60,shb:12,shd:8,sha:70,ain:'zoomin',ainD:.4,aout:'fade',aoutD:.3,text:'2개월 전'}],
+  ['마크 대사 자막',{x:30,y:76,size:58,font:'Pretendard Black',fill:'#ffffff',strokes:[{c:'#000000',w:9}],align:'left',sh:true,shc:'#000000',sho:50,shb:3,shd:4,sha:70,ain:'pop',ainD:.2,aout:'fade',aoutD:.15,text:'야 개꿀이다'}],
+  ['마크 테마 제목',{y:22,size:52,font:'Black Han Sans',fill:'#48ff48',strokes:[{c:'#000000',w:7}],sh:true,shc:'#000000',sho:50,shb:8,shd:4,sha:90,ain:'left',ainD:.35,aout:'fade',text:'⚡ 전생했더니 슬라임이었던 건에 대하여'}],
+  ['마크 경고 자막',{y:50,size:140,font:'Pretendard Black',fill:'#ff3333',strokes:[{c:'#ffffff',w:6},{c:'#000000',w:10}],sh:true,shc:'#000000',sho:80,shb:6,shd:6,sha:90,ain:'shake',ainD:.5,text:'위험!'}],
+  ['브이로그 자막',{y:84,size:48,font:'Pretendard',fill:'#ffffff',strokes:[],bg:true,bgc:'#000000',bgo:55,bgr:12,ain:'fade',ainD:.3,aout:'fade',aoutD:.3,text:'오늘의 하루를 기록합니다'}],
+  ['핑크 강조',{y:50,size:110,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#ff5fa2',w:10}],sh:true,shc:'#ff5fa2',sho:60,shb:20,shd:0,ain:'pop',ainD:.35,text:'핑크 강조!'}],
+  ['노란 흔들림',{y:50,size:100,font:'Jua',fill:'#ffe14a',strokes:[{c:'#1a1a1a',w:9}],ain:'shake',ainD:.5,text:'흔들리는 자막'}],
+  ['페이드 하단',{y:88,size:50,font:'Pretendard',fill:'#ffffff',strokes:[],bg:true,bgc:'#1a1a2e',bgo:80,bgr:0,ain:'fade',ainD:.5,aout:'fade',aoutD:.5,text:'부드럽게 나타나는 하단 자막'}],
+  ['굵은 테두리',{y:50,size:120,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#1a1a1a',w:14},{c:'#ffffff',w:4}],ain:'pop',ainD:.3,text:'두꺼운 테두리'}],
+  ['시네마 레터박스',{y:50,size:72,font:'Pretendard',fill:'#ffffff',strokes:[],lead:'2.2',ain:'blur',ainD:.6,aout:'blur',aoutD:.4,text:'영화처럼\n자막을 넣어 보세요'}],
+  ['D-Day 카운터',{y:50,size:160,font:'Pretendard Black',fill:'#ffffff',strokes:[{c:'#ff3d6e',w:8}],cnt:{on:true,from:30,to:0,sec:3,delay:0,comma:false,ease:true,roll:true,pre:'D-',suf:'',pad:0},text:'D-30'}]];
 function loadFont(c){if(document.fonts&&document.fonts.load)document.fonts.load(`${c.bold?800:500} 40px "${c.font}"`,c.text||'가').catch(()=>{});}
 FONTS.forEach(([f])=>{try{document.fonts.load(`500 40px "${f}"`,'가A');}catch(e){}});
 function gradEditor(C){
@@ -2095,6 +2140,25 @@ function panelEffects(el){
     rn.onclick=()=>renamePreset(p);dl.onclick=()=>{const l=animPresets().filter(x=>x.id!==p.id);lsSet('cutroom.anims',l);renderPanels();toast(`'${p.name}'을(를) 삭제했습니다.`);};
     pa.append(rn,dl);w.append(pa);g.append(w);}
   sec4.append(g);el.append(sec4);
+  /* 효과음·배경음 생성 */
+  const sec5=section('효과음 · 배경음 생성');
+  sec5.append(h('p','hint','Web Audio로 합성한 짧은 효과음·배경음을 타임라인에 넣습니다. 선택하면 재생 헤드 위치에 소리가 들어갑니다.'));
+  const SFX_LIST=[
+    ['팝 (등장)',sfxPop],['띵 (알림)',sfxDing],['우쉬 (스우시)',sfxWhoosh],['틱 (클릭)',sfxTick],
+    ['북 드럼 (두둥)',sfxDrum],['하이햇',sfxHihat],['퐁 (통통)',sfxBounce],['오류 (삐)',sfxError],
+    ['레벨업 차임',sfxLevelup],['코인 획득',sfxCoin],['레이저',sfxLaser],['폭발',sfxExplosion]
+  ];
+  const BGM_LIST=[
+    ['차분한 피아노 (8초)',bgmPiano],['신나는 비트 (8초)',bgmBeat],['긴장감 (8초)',bgmTension],['승리 팡파레 (4초)',bgmFanfare]
+  ];
+  const sg=h('div','gal');
+  for(const[n,fn]of SFX_LIST){const d=h('div','preset');d.style.cssText='cursor:pointer;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center';
+    d.append(h('span',null,'🔊 '+n));d.onclick=async()=>{const buf=await fn();addSynthAudio(n,buf);};sg.append(d);}
+  sec5.append(h('h4',null,'효과음'),sg);
+  const bg=h('div','gal');
+  for(const[n,fn]of BGM_LIST){const d=h('div','preset');d.style.cssText='cursor:pointer;padding:8px;border:1px solid var(--line);border-radius:8px;text-align:center';
+    d.append(h('span',null,'🎵 '+n));d.onclick=async()=>{const buf=await fn();addSynthAudio(n,buf);};bg.append(d);}
+  sec5.append(h('h4',null,'배경음'),bg);el.append(sec5);
 }
 const TOOLS=[['V','선택'],['A','트랙 선택'],['B','잔물결'],['C','자르기'],['T','문자']];
 function renderTools(){const el=$('tools');el.textContent='';
@@ -2527,6 +2591,7 @@ const QUICK=[
   ['demo','예시로 둘러보기',()=>createProject({demo:true})],
   ['more','단축키 설정',()=>showKeys()]];
 function renderQuick(){const q=$('quick');q.textContent='';for(const[ic,n,fn]of QUICK){const b=h('button');b.innerHTML=ICONS[ic];b.append(h('span',null,n));b.onclick=fn;q.append(b);}}
+
 const SIDE=[
   ['노래방 · 쇼츠 자막','글자가 차오르는 노래방 자막과 쇼츠 강조 자막, 자막바를 템플릿으로 바로 넣으세요.','템플릿 열기',()=>QUICK[3][2]()],
   ['함께 편집하기',IS_APP?'작품을 열고 "서버 열기"를 누르면 6자리 코드가 나옵니다. 다른 사람은 앱의 "서버 참여"에 코드를 넣으면 같은 타임라인을 함께 편집합니다.':'작품에서 공동 작업을 켜면 로그인한 사람끼리 같은 타임라인을 실시간으로 편집합니다.',IS_APP?'서버 참여':'방법 보기',()=>IS_APP?p2pDialog():showCollabHelp()],
@@ -2562,6 +2627,7 @@ async function renderHome(){
   else if(IS_APP){$('bLogin').hidden=false;$('bLogin').textContent=prof()?'👤 '+prof().name:'👤 로그인';}
   $('bJoin').hidden=!CAN_P2P;
   if(IS_APP){const u=h('button','mini','v'+(window.NL_APPVERSION||CUTROOM_VERSION)+' · 업데이트 확인');u.onclick=()=>checkUpdate(true);who.append(u);}
+  {const pn=h('button','mini','📋 패치 노트');pn.onclick=()=>showPatchNotes();who.append(pn);}
   const grid=$('projGrid');grid.className=homeList?'list':'';grid.textContent='';
   const q=homeQ.trim().toLowerCase();
   const mine=projects.mine.map(r=>({r,kind:'mine'}));
@@ -3400,7 +3466,7 @@ function updBar(v,notes){
   const r=h('button','primary','지금 다시 시작'),l=h('button','mini','나중에');
   r.onclick=async()=>{r.disabled=true;r.textContent='다시 시작하는 중…';try{if(cur)await saveNow(true);await Neutralino.app.restartProcess();}catch(e){toast('다시 시작하지 못했습니다. 앱을 닫았다 열어 주세요.');}};
   l.onclick=()=>b.remove();
-  const pn=h('button','mini','바뀐 점 보기');pn.onclick=()=>{const u='https://yoonslog.github.io/cutroom/patch-notes/';try{if(window.Neutralino&&Neutralino.os)Neutralino.os.open(u);else open(u,'_blank');}catch(e){open(u,'_blank');}};
+  const pn=h('button','mini','바뀐 점 보기');pn.onclick=()=>showPatchNotes();
   b.append(r,pn,l);document.body.append(b);
 }
 async function checkUpdate(manual){
@@ -3419,6 +3485,80 @@ async function checkUpdate(manual){
   updBusy=false;
 }
 if(IS_APP)setInterval(()=>checkUpdate(),3*3600*1000);
+/* ================= 앱 내 패치 노트 ================= */
+const PATCH_NOTES=[
+  ['1.5.0','2026-11-22','새 템플릿 · 효과음 · 앱 내 패치 노트',[
+    '마크 서버 자막, 마크 큰 제목, 마크 대사 자막 등 마인크래프트 유튜브 스타일 템플릿 13종 추가',
+    '브이로그 자막, 핑크 강조, 노란 흔들림, 페이드 하단, 굵은 테두리, 시네마 레터박스, D-Day 카운터 템플릿 추가',
+    '효과음 12종(팝, 띵, 우쉬, 틱, 북 드럼, 하이햇, 통통, 오류, 레벨업, 코인, 레이저, 폭발) 합성 생성',
+    '배경음 4종(차분한 피아노, 신나는 비트, 긴장감, 승리 팡파레) 합성 생성',
+    '효과 패널에서 효과음·배경음을 클릭 한 번으로 타임라인에 추가',
+    '앱 안에서 패치 노트 보기(이 화면!) 추가'
+  ]],
+  ['1.4.4','2026-11-21','자막 편집 위치 오류 수정 · 영상 패치 노트',[
+    '화면에서 자막을 편집할 때 살짝 위로 올라가던 오류 수정',
+    '입력 칸이 자막과 같은 자리, 같은 크기로 겹치도록 개선',
+    '긴 자막이 입력 칸 안에서 멋대로 줄 바뀌는 문제 해결',
+    '웹사이트에 패치 노트 페이지 추가 (버전별 영상 포함)',
+    '업데이트 알림에 "바뀐 점 보기" 버튼 추가'
+  ]],
+  ['1.4.3','2026-11-20','모션 트래킹 · 입체 글자 · 게임 일차 제목',[
+    '🎯 대상 따라가기 (모션 트래킹) 기능 추가',
+    '영상 속 대상을 네모로 감싸면 자동으로 따라가는 키프레임 생성',
+    '입체 글자 (3D 돌출) 효과 추가 — 두께, 방향, 앞/뒤 색 조절',
+    '게임 일차 제목 템플릿 (마인크래프트 스타일 황금 입체 글자)',
+    '입체 팝 제목 템플릿 추가'
+  ]],
+  ['1.4.2','2026-11-19','키프레임 가속 · 애니메이션 컨트롤',[
+    '키프레임 우클릭 → 가속 메뉴 (hold, in, out, io, back, snap 등)',
+    '애니메이션 컨트롤 탭에서 가속 곡선을 직접 드래그하여 조절',
+    '커스텀 베지어 곡선 편집 (컨트롤 포인트 드래그)',
+    '자막 자동 줄바꿈 기능 (캔버스 너비 기준)',
+    '문자 도구(T) 클릭 시 기존 자막을 바로 편집하도록 개선',
+    '타임라인 성능 최적화'
+  ]],
+  ['1.4.1','2026-11-18','대용량 안정성 · 맞춤 축소 · 미리보기',[
+    '큰 용량 파일에서 끊기는 현상 대폭 개선',
+    '타임라인 축소 시 모든 클립이 보일 때까지 줄어들도록 변경',
+    '자막 편집 시 색/글꼴 등 실시간 미리보기 추가',
+    'Windows 설치 프로그램 (CutRoom-Setup.exe) 제공',
+    '자동 업데이트 기능 (앱 사용 중 새 버전 알림)'
+  ]],
+  ['1.3.0','2026-10-29','Lumetri 색상 · 비디오 전환',[
+    '밝기, 대비, 채도, 색조, 감마 보정, 비네팅',
+    '디졸브, 디핑, 화이트 페이드, 밀기 전환 효과',
+    '가우시안 블러, 흑백, 좌우 뒤집기, 자르기 효과'
+  ]],
+  ['1.2.0','2026-10-15','실시간 협업 (P2P)',[
+    '같은 작품을 여러 사람이 동시에 편집',
+    'PeerJS 기반 6자리 코드 연결',
+    '커서 위치와 편집 내용 실시간 동기화'
+  ]],
+  ['1.1.0','2026-10-01','기본 편집 완성',[
+    '영상·사진·소리를 타임라인에 배치',
+    '자막 추가 및 스타일 편집',
+    '키프레임 애니메이션',
+    'MP4/WebM 내보내기'
+  ]]
+];
+function showPatchNotes(){
+  modal(b=>{
+    b.style.maxWidth='640px';b.style.maxHeight='80vh';b.style.overflowY='auto';
+    b.append(h('h2',null,'📋 패치 노트'));
+    b.append(h('p','hint','컷룸의 모든 업데이트 내역입니다.'));
+    for(const[ver,date,title,items]of PATCH_NOTES){
+      const card=h('div');card.style.cssText='margin:12px 0;padding:12px 16px;background:#ffffff08;border-radius:10px;border-left:4px solid #2fd5c5';
+      card.append(h('h3',null,`v${ver}  ·  ${date}`));
+      card.append(h('p',null,title));
+      const ul=document.createElement('ul');ul.style.cssText='margin:6px 0 0;padding-left:20px;font-size:13px;line-height:1.7;color:#aab';
+      for(const item of items){const li=document.createElement('li');li.textContent=item;ul.append(li);}
+      card.append(ul);b.append(card);
+    }
+    const web=h('button',null,'웹 패치 노트 (영상 포함)');web.onclick=()=>{const u='https://yoonslog.github.io/cutroom/patch-notes/';try{if(window.Neutralino&&Neutralino.os)Neutralino.os.open(u);else open(u,'_blank');}catch(e){open(u,'_blank');}};
+    const cl=h('button','primary','닫기');cl.onclick=closeModal;
+    const a=h('div','acts');a.append(web,cl);b.append(a);
+  });
+}
 /* ================= 음량 미터 ================= */
 const mtr={buf:null,pk:[-90,-90],hold:[0,0],hist:[]};
 function dbOf(a){if(!a)return -90;if(!mtr.buf||mtr.buf.length!==a.fftSize)mtr.buf=new Float32Array(a.fftSize);a.getFloatTimeDomainData(mtr.buf);let sum=0,pk=0;for(const v of mtr.buf){sum+=v*v;const x=Math.abs(v);if(x>pk)pk=x;}
