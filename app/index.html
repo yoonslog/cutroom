@@ -134,6 +134,8 @@ input[type=color]{width:32px;height:24px;padding:0;border:1px solid var(--line);
 .gcard{padding:0;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;background:var(--panel2);text-align:left}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:60;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--panel2,#222834);border:1px solid var(--accent,#2fd5c5);box-shadow:0 8px 28px rgba(0,0,0,.45);font-size:13px;max-width:90vw;flex-wrap:wrap}
 .updbar .hint{opacity:.7;max-width:380px}
+.tprog{width:160px;height:6px;border-radius:3px;background:#ffffff22;overflow:hidden}.tprog i{display:block;height:100%;width:0;background:var(--accent,#2fd5c5)}
+body.picking #cv{cursor:crosshair}
 .livepv{position:sticky;top:0;z-index:3;margin:0 0 8px;border-radius:8px;overflow:hidden;border:1px solid var(--line,#39404f);cursor:pointer;background:#0c0e13}.livepv canvas{width:100%;height:130px;object-fit:contain;display:block}
 .gcard canvas{width:100%;aspect-ratio:16/9;display:block;background:#0c0e13}
 .gcard span{padding:4px 8px;font-size:12px;white-space:normal;line-height:1.3}
@@ -446,7 +448,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const CUTROOM_VERSION='1.4.2';
+const CUTROOM_VERSION='1.4.3';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -760,6 +762,7 @@ function animMod(type,p,k,st,W0){
 }
 const OUT_MAP={up:'down',down:'up',left:'right',right:'left',zoomin:'zoomout',zoomout:'zoomin'};
 function gradStops(c){const st=Array.isArray(c.gstops)&&c.gstops.length>=2?c.gstops:[{c:c.g1||'#ffe14a',p:0},{c:c.g2||'#ff5fa2',p:100}];return [...st].sort((a,b)=>a.p-b.p);}
+function mixHex(a,b,f){const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16));try{const A=p(a),B=p(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*f).toString(16).padStart(2,'0')).join('');}catch(e){return a;}}
 function makeGrad(g,c,w,h){
   let gr;if(c.gtype==='radial')gr=g.createRadialGradient(0,0,0,0,0,Math.max(1,Math.hypot(w,h)/2));
   else{const a=(c.gang||0)*Math.PI/180,gx=Math.cos(a)*w/2,gy=Math.sin(a)*h/2;gr=g.createLinearGradient(-gx,-gy,gx,gy);}
@@ -841,6 +844,15 @@ function drawTextLocal(g,c,u,k,W0){
   const shadowOn=()=>{if(c.sh&&first){g.shadowColor=rgba(c.shc,c.sho/100);g.shadowBlur=c.shb*k*shK;const a2=c.sha*Math.PI/180;
     g.shadowOffsetX=Math.cos(a2)*c.shd*k*shK;g.shadowOffsetY=Math.sin(a2)*c.shd*k*shK;}};
   const shadowOff=()=>{if(first){g.shadowColor='transparent';g.shadowBlur=0;g.shadowOffsetX=g.shadowOffsetY=0;first=false;}};
+  if(c.ext&&c.extD>0){
+    const ea=(c.extA==null?45:c.extA)*Math.PI/180,dep=c.extD*k,n=Math.min(120,Math.max(2,Math.ceil(dep/Math.max(.6,k*.9))));
+    let r=0;for(const s0 of strokes)r+=s0.w;const ec=c.extC||'#1a1208',ec2=c.extC2||ec;
+    for(let i=n;i>=1;i--){const f=i/n,ox=Math.cos(ea)*dep*f,oy=Math.sin(ea)*dep*f;
+      const col=ec2===ec?ec:mixHex(ec,ec2,f);g.fillStyle=col;g.strokeStyle=col;g.lineWidth=2*r*k+1;
+      if(i===n)shadowOn();
+      each((G,x,y)=>{if(r>0)g.strokeText(G.ch,x+ox,y+oy);g.fillText(G.ch,x+ox,y+oy);});
+      if(i===n)shadowOff();}
+  }
   for(let i=strokes.length-1;i>=0;i--){
     let r=0;for(let j=0;j<=i;j++)r+=strokes[j].w;
     shadowOn();g.strokeStyle=strokes[i].c;g.lineWidth=2*r*k;each((G,x,y)=>g.strokeText(G.ch,x,y));shadowOff();
@@ -1037,6 +1049,9 @@ function draw(){
     const dk=W/(cv.clientWidth||W);
     if(guides.length){ctx.save();ctx.lineWidth=2*dk;ctx.setLineDash([]);
       for(const g of guides){ctx.strokeStyle=g.c;ctx.beginPath();if(g.v){ctx.moveTo(g.p,0);ctx.lineTo(g.p,H);}else{ctx.moveTo(0,g.p);ctx.lineTo(W,g.p);}ctx.stroke();}ctx.restore();}
+    if(trackPick&&trackPick.box){const b=trackPick.box;ctx.save();ctx.fillStyle='rgba(255,210,90,.18)';ctx.strokeStyle='#ffd25a';ctx.lineWidth=2*dk;ctx.setLineDash([]);ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}
+    if(trackLive){const b=trackLive;ctx.save();ctx.strokeStyle='#ffd25a';ctx.lineWidth=2.5*dk;ctx.setLineDash([]);ctx.strokeRect(b.x,b.y,b.w,b.h);
+      ctx.beginPath();ctx.moveTo(b.x+b.w/2-8*dk,b.y+b.h/2);ctx.lineTo(b.x+b.w/2+8*dk,b.y+b.h/2);ctx.moveTo(b.x+b.w/2,b.y+b.h/2-8*dk);ctx.lineTo(b.x+b.w/2,b.y+b.h/2+8*dk);ctx.stroke();ctx.restore();}
     if(cvMarq){ctx.save();ctx.fillStyle='rgba(47,213,197,.15)';ctx.strokeStyle='#2fd5c5';ctx.lineWidth=1.5*dk;ctx.fillRect(cvMarq.x,cvMarq.y,cvMarq.w,cvMarq.h);ctx.strokeRect(cvMarq.x,cvMarq.y,cvMarq.w,cvMarq.h);ctx.restore();}
   }
 }
@@ -1592,6 +1607,152 @@ function panelKfa(el){
   cv.ondblclick=()=>{const cc=C(),q=K()[kfSel.i];pushHistory();if(ap.checked)setEaseAt(cc,q[0],null);else setEaseAt(cc,q[0],null,P0());draw();mkPre();renderTimeline();};
 }
 function fmtV(p,v){v=+v;return p==='op'||p==='vol'?Math.round(v)+'%':p==='rot'?Math.round(v)+'°':p==='scale'?Math.round(v)+'%':v.toFixed(1);}
+/* ================= 모션 트래킹 (대상 자동 따라가기) ================= */
+let trackPick=null,trackLive=null,trackJob=null;
+function trackTargets(c){
+  // 이 클립과 시간이 겹치는 영상 클립(아래 트랙 우선)
+  const ti=VT.indexOf(c.tr);
+  return P.clips.filter(v=>v.kind==='video'&&S[v.src]&&S[v.src].type==='video'&&!S[v.src].offline&&v.start<end(c)-.05&&end(v)>c.start+.05)
+    .sort((a,b)=>{const ia=VT.indexOf(a.tr),ib=VT.indexOf(b.tr);const da=ia<ti?0:1,db=ib<ti?0:1;return da-db||ib-ia;});
+}
+/* 영상 픽셀 → 프로젝트 화면 좌표 (클립의 위치·비율·회전·맞춤 반영) */
+function vidToScr(v,u,sw,sh,px,py){
+  const k=v.fit==='cover'?Math.max(W/sw,H/sh):v.fit==='none'?1:Math.min(W/sw,H/sh),anc=ANCH[v.anchor]||ANCH.mc;
+  let lx=anc[0]*sw*k/2+(px-sw/2)*k,ly=anc[1]*sh*k/2+(py-sh/2)*k;
+  const sc=val(v,'scale',u)/100,fl=v.fx&&v.fx.flip?-1:1,a=val(v,'rot',u)*Math.PI/180;
+  lx*=sc*fl;ly*=sc;
+  return[W*val(v,'x',u)/100+lx*Math.cos(a)-ly*Math.sin(a),H*val(v,'y',u)/100+lx*Math.sin(a)+ly*Math.cos(a),k*sc];
+}
+function scrToVid(v,u,sw,sh,X,Y){
+  const k=v.fit==='cover'?Math.max(W/sw,H/sh):v.fit==='none'?1:Math.min(W/sw,H/sh),anc=ANCH[v.anchor]||ANCH.mc;
+  const sc=val(v,'scale',u)/100,fl=v.fx&&v.fx.flip?-1:1,a=-val(v,'rot',u)*Math.PI/180;
+  let dx=X-W*val(v,'x',u)/100,dy=Y-H*val(v,'y',u)/100;
+  let lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a);lx/=sc*fl;ly/=sc;
+  return[(lx-anc[0]*sw*k/2)/k+sw/2,(ly-anc[1]*sh*k/2)/k+sh/2,k*sc];
+}
+function grayOf(g,w,h){const d=g.getImageData(0,0,w,h).data,o=new Float32Array(w*h*3);for(let i=0,j=0;j<o.length;i+=4,j+=3){o[j]=d[i];o[j+1]=d[i+1];o[j+2]=d[i+2];}return o;}
+function patchOf(img,iw,ih,cx,cy,tw,th){const o=new Float32Array(tw*th*3);const x0=Math.round(cx-tw/2),y0=Math.round(cy-th/2);
+  for(let y=0;y<th;y++){const yy=clamp(y0+y,0,ih-1);for(let x=0;x<tw;x++){const si=(yy*iw+clamp(x0+x,0,iw-1))*3,di=(y*tw+x)*3;o[di]=img[si];o[di+1]=img[si+1];o[di+2]=img[si+2];}}return o;}
+const wCache=new Map();
+function centerW(tw,th){const k=tw+'x'+th;let w=wCache.get(k);if(w)return w;w=new Float32Array(tw*th*3);let sw=0;
+  for(let y=0;y<th;y++)for(let x=0;x<tw;x++){const dx=(x+.5)/tw-.5,dy=(y+.5)/th-.5,v=Math.exp(-(dx*dx+dy*dy)/(2*.3*.3));for(let c=0;c<3;c++){w[(y*tw+x)*3+c]=v;sw+=v;}}
+  w.sum=sw;wCache.set(k,w);return w;}
+function normPatch(p,tw,th){const w=centerW(tw,th);let m=0;for(let i=0;i<p.length;i++)m+=w[i]*p[i];m/=w.sum;let s2=0;const o=new Float32Array(p.length),raw=new Float32Array(p.length);
+  for(let i=0;i<p.length;i++){const d=p[i]-m;raw[i]=d;o[i]=w[i]*d;s2+=w[i]*d*d;}return{d:o,raw,n:Math.sqrt(s2)||1,w};}
+/* 정규화 상관(NCC)으로 탐색 창 안에서 가장 닮은 자리 찾기 */
+function matchNCC(img,iw,ih,T,tw,th,cx,cy,R){
+  const td=T.d,tn=T.n,tw8=T.w,wsum=tw8.sum;let best=-2,bestP=-9,bx=cx,by=cy;const step=R>24?2:1;
+  const scan=(xa,xb,ya,yb,st)=>{for(let py=ya;py<=yb;py+=st)for(let px=xa;px<=xb;px+=st){
+    const x0=Math.round(px-tw/2),y0=Math.round(py-th/2);if(x0<0||y0<0||x0+tw>iw||y0+th>ih)continue;
+    let sm=0,ss=0,sc=0;const w3=tw*3;
+    for(let y=0;y<th;y++){const row=((y0+y)*iw+x0)*3,tr=y*w3;for(let x=0;x<w3;x++){const v=img[row+x],wv=tw8[tr+x]*v;sm+=wv;ss+=wv*v;sc+=v*td[tr+x];}}
+    const varr=ss-sm*sm/wsum;if(varr<1e-3)continue;const r=sc/(Math.sqrt(varr)*tn),pen=r-.22*Math.hypot(px-cx,py-cy)/R;if(pen>bestP){bestP=pen;best=r;bx=px;by=py;}}};
+  scan(Math.round(cx-R),Math.round(cx+R),Math.round(cy-R),Math.round(cy+R),step);
+  if(step>1)scan(bx-2,bx+2,by-2,by+2,1);
+  return{x:bx,y:by,s:best};
+}
+function seekEl(el,t){return new Promise(res=>{let done=false;const f=()=>{if(done)return;done=true;el.removeEventListener('seeked',f);res();};
+  el.addEventListener('seeked',f);try{el.currentTime=Math.max(0,Math.min(t,(el.duration||t+1)-.001));}catch(e){f();}setTimeout(f,4000);});}
+function trackUI(txt,p){
+  let b=$('trackbar');
+  if(!b){b=h('div','updbar');b.id='trackbar';const s1=h('span'),pr=h('div','tprog'),bar=h('i');pr.append(bar);const st=h('button',null,'멈추기');
+    st.onclick=()=>{if(trackJob)trackJob.stop=true;};b.append(s1,pr,st);document.body.append(b);b._s=s1;b._i=bar;}
+  b._s.textContent=txt;b._i.style.width=Math.round(clamp(p,0,1)*100)+'%';
+}
+async function startTracking(id,vid,box){
+  const c=byId(id),v=byId(vid);if(!c||!v){toast('클립을 찾지 못했습니다.');return;}
+  const s=S[v.src];if(!s||!s.url){toast('영상 파일을 찾지 못했습니다.');return;}
+  if(trackJob){toast('이미 추적 중입니다.');return;}
+  const job=trackJob={stop:false};setPlaying(false);
+  const T0=t,fps=c.trackFps||12;
+  const el=document.createElement('video');el.muted=true;el.preload='auto';el.playsInline=true;el.src=s.url;
+  trackUI('영상 여는 중…',0);
+  await new Promise(r=>{if(el.readyState>=1)r();el.onloadedmetadata=()=>r();el.onerror=()=>r();setTimeout(r,20000);});
+  const sw=el.videoWidth,sh=el.videoHeight;
+  if(!sw||!sh){trackJob=null;$('trackbar')&&$('trackbar').remove();toast('이 영상은 분석할 수 없습니다.');return;}
+  // 대상 크기에 맞춰 분석 해상도 정하기 (템플릿 최대 44px)
+  const u0v=T0-v.start;
+  const [vx,vy,kk]=scrToVid(v,u0v,sw,sh,box.x+box.w/2,box.y+box.h/2);
+  const bwv=box.w/kk,bhv=box.h/kk;
+  const ds=clamp(44/Math.max(bwv,bhv),.04,1),iw=Math.max(16,Math.round(sw*ds)),ih=Math.max(16,Math.round(sh*ds));
+  const tw=Math.max(8,Math.round(bwv*ds)),th=Math.max(8,Math.round(bhv*ds));
+  const wc=document.createElement('canvas');wc.width=iw;wc.height=ih;const wg=wc.getContext('2d',{willReadFrequently:true});
+  const grab=async tt=>{const st=v.in+(tt-v.start)*v.speed;await seekEl(el,st);wg.drawImage(el,0,0,iw,ih);return grayOf(wg,iw,ih);};
+  const cu0=T0-c.start,gx0=val(c,'x',cu0),gy0=val(c,'y',cu0);
+  const [sx0,sy0]=vidToScr(v,u0v,sw,sh,vx,vy);
+  let img=await grab(T0);
+  let T=normPatch(patchOf(img,iw,ih,vx*ds,vy*ds,tw,th),tw,th);const T1=T;
+  const lo=Math.max(c.start,v.start),hi=Math.min(end(c),end(v))-.001;
+  const pts=[{t:T0,x:gx0,y:gy0}];
+  const span=Math.max(.001,(hi-T0)+(T0-lo));let doneT=0,lost=0;
+  const R=Math.max(6,Math.round(Math.max(tw,th)*.9));
+  let dir=1,cx,cy,vxp,vyp;
+  const reset=d=>{dir=d;cx=vx*ds;cy=vy*ds;vxp=0;vyp=0;T=T1;lost=0;};
+  const step=(tt,img)=>{
+    let m=matchNCC(img,iw,ih,T,tw,th,cx+vxp,cy+vyp,R);
+    if(m.s<.5&&(vxp||vyp)){const m2=matchNCC(img,iw,ih,T,tw,th,cx,cy,R);if(m2.s>m.s)m=m2;}
+    if(m.s<.35){lost++;if(lost>=Math.max(4,fps*.6))return false;}
+    else{lost=0;vxp=(m.x-cx)*.7+vxp*.3;vyp=(m.y-cy)*.7+vyp*.3;cx=m.x;cy=m.y;
+      if(m.s>.85){const nP=patchOf(img,iw,ih,cx,cy,tw,th),mix=new Float32Array(nP.length),pm=normPatch(nP,tw,th);
+        for(let i=0;i<mix.length;i++)mix[i]=T1.raw[i]*.5+T.raw[i]*.35+pm.raw[i]*.15;T=normPatch(mix,tw,th);}}
+    const[X,Y]=vidToScr(v,tt-v.start,sw,sh,cx/ds,cy/ds);
+    pts.push({t:tt,x:+(gx0+(X-sx0)/W*100).toFixed(3),y:+(gy0+(Y-sy0)/H*100).toFixed(3),bad:lost>0});
+    trackLive={x:X-tw/ds*kk/2,y:Y-th/ds*kk/2,w:tw/ds*kk,h:th/ds*kk};
+    doneT=dir>0?tt-T0:(hi-T0)+(T0-tt);trackUI(`대상 따라가는 중… ${Math.round(doneT/span*100)}%`,doneT/span);
+    t=tt;draw();return true;
+  };
+  // 앞으로: 영상을 재생하면서 프레임을 받아 분석 (탐색보다 훨씬 빠름)
+  const seqForward=()=>new Promise(async res=>{
+    if(!el.requestVideoFrameCallback){res(false);return;}
+    await seekEl(el,v.in+(T0-v.start)*v.speed);
+    let next=T0+1/fps,stopped=false,last=performance.now();
+    const fin=ok=>{if(stopped)return;stopped=true;clearInterval(wd);try{el.pause();}catch(e){}res(ok);};
+    const cb=(now,meta)=>{if(stopped)return;last=performance.now();const tt=v.start+(meta.mediaTime-v.in)/v.speed;
+      if(job.stop||tt>hi){fin(true);return;}
+      if(tt>=next-.25/fps){wg.drawImage(el,0,0,iw,ih);if(!step(tt,grayOf(wg,iw,ih))){fin(true);return;}next=tt+1/fps;}
+      el.requestVideoFrameCallback(cb);};
+    const wd=setInterval(()=>{if(performance.now()-last>8000)fin(pts.length>1);},1000);
+    el.onended=()=>fin(true);
+    el.requestVideoFrameCallback(cb);el.playbackRate=Math.min(4,1.5*(v.speed||1));
+    try{await el.play();}catch(e){fin(false);}
+  });
+  reset(1);
+  const okSeq=hi>T0+1/fps?await seqForward():true;
+  if(!okSeq&&!job.stop){reset(1);for(let tt=T0+1/fps;tt<=hi;tt+=1/fps){if(job.stop)break;if(!step(tt,await grab(tt)))break;}}
+  if(!job.stop){reset(-1);for(let tt=T0-1/fps;tt>=lo;tt-=1/fps){if(job.stop)break;if(!step(tt,await grab(tt)))break;}}
+  el.removeAttribute('src');el.load();trackLive=null;trackJob=null;$('trackbar')&&$('trackbar').remove();t=T0;
+  const good=pts.filter(p=>!p.bad).sort((a,b)=>a.t-b.t);
+  if(good.length<3){toast('대상을 따라가지 못했습니다. 무늬가 뚜렷한 부분을 조금 크게 감싸 보세요.');draw();return;}
+  pushHistory();
+  const cc=byId(id);
+  const simp=(arr,key)=>{const out=[arr[0]];for(let i=1;i<arr.length-1;i++){const a=out[out.length-1],b=arr[i+1],p=arr[i];
+      const f=(p.t-a.t)/((b.t-a.t)||1),pred=a[key]+(b[key]-a[key])*f;if(Math.abs(pred-p[key])>.06)out.push(p);}out.push(arr[arr.length-1]);
+    return out.map(p=>[+(p.t-cc.start).toFixed(3),p[key]]);};
+  cc.x={k:simp(good,'x')};cc.y={k:simp(good,'y')};cc.track={vid,at:+T0.toFixed(3)};
+  refresh(true);
+  toast(`트래킹 완료 · 키프레임 ${cc.x.k.length+cc.y.k.length}개를 만들었습니다${job.stop?' (중간에 멈춤)':''}.`);
+}
+function trackSection(el,c){
+  const id=c.id,C=()=>byId(id);
+  const s=section('모션 트래킹 (대상 따라가기)');
+  const vids=trackTargets(c);
+  if(!vids.length){s.append(h('p','hint','이 클립과 같은 시간에 놓인 영상 클립이 있어야 합니다. 따라갈 대상이 나오는 영상을 아래 트랙에 놓아 주세요.'));el.append(s);return;}
+  const sel=h('select');for(const v of vids){const o=h('option',null,clipLabel(v)+' ('+v.tr+')');o.value=v.id;sel.append(o);}
+  if(c.track&&vids.some(v=>v.id===c.track.vid))sel.value=c.track.vid;
+  s.append(row('따라갈 영상',sel));
+  s.append(slider('분석 간격',4,30,1,()=>C().trackFps||12,v=>C().trackFps=v,v=>Math.round(v)+' 프레임/초'));
+  const go=h('button','primary','🎯 화면에서 대상 고르기');
+  go.onclick=()=>{const v=byId(sel.value);if(!v)return;
+    if(t<Math.max(c.start,v.start)||t>Math.min(end(c),end(v))){seek(Math.max(c.start,v.start)+.01);}
+    trackPick={id,vid:v.id,box:null};document.body.classList.add('picking');setPlaying(false);
+    toast('프로그램 모니터에서 따라갈 대상을 네모로 감싸세요. (Esc: 취소)');};
+  const clr=h('button',null,'트래킹 지우기');
+  clr.onclick=()=>{const cc=C();if(!cc)return;pushHistory();const u=uOf(cc);for(const p of['x','y'])if(isAnim(cc,p))cc[p]=+val(cc,p,u).toFixed(2);delete cc.track;refresh(true);};
+  const bt=h('div','chips');bt.append(go);if(c.track||isAnim(c,'x'))bt.append(clr);s.append(bt);
+  s.append(h('p','hint',c.track?`트래킹이 적용되어 있습니다. 위치 X·Y 키프레임으로 저장되어 있어, 애니메이션 컨트롤에서 다듬거나 다시 고를 수 있습니다.`:
+    '지금 재생 헤드 위치에서 대상을 네모로 감싸면 앞뒤로 영상을 분석해 이 클립이 대상을 따라다니도록 위치 키프레임을 만듭니다. 자막·스티커·모양 모두 됩니다.'));
+  el.append(s);
+}
 function panelFx(el){
   const c=byId(selId);if(!need(el,c,'타임라인에서 클립을 선택하면 위치·비율·불투명도·전환·효과를 여기에서 조절합니다. ⏱를 켜면 그 값이 키프레임으로 움직입니다.'))return;
   const id=c.id,C=()=>byId(id);
@@ -1603,6 +1764,7 @@ function panelFx(el){
     s.append(kfRow(id,'x','위치 X',-50,150,.5,pct),kfRow(id,'y','위치 Y',-50,150,.5,pct),kfRow(id,'scale','비율',5,400,1,pct),kfRow(id,'rot','회전',-180,180,1,v=>Math.round(v)+'°'));
     if(c.kind==='video'||c.kind==='image')s.append(choice('프레임 맞춤',[['contain','전체 보이기'],['cover','꽉 채우기'],['none','원본 크기']],()=>C().fit,v=>C().fit=v));
     el.append(s);
+    if(c.kind!=='video'&&c.kind!=='adj')trackSection(el,c);
   }
   if(isVis(c)){const s=section('불투명도');s.append(kfRow(id,'op','불투명도',0,100,1,pct));el.append(s);}
   const s2=section('속도 / 지속 시간');
@@ -1655,6 +1817,8 @@ const TEMPLATES=[
   ['뉴스 속보',{x:30,y:84,size:54,align:'left',bg:true,bgc:'#d62828',bgo:100,bgr:0,strokes:[],ain:'left',text:'속보 · 제목을 입력하세요'}],
   ['글자별 등장',{y:50,size:90,font:'Gaegu',fill:'#ffffff',strokes:[{c:'#ff5fa2',w:7}],ain:'char',ainD:.9,text:'하나씩 톡톡'}],
   ['타자기',{y:85,size:60,font:'Do Hyeon',strokes:[{c:'#000000',w:4}],ain:'type',ainD:1.4,aout:'fade',text:'한 글자씩 나타나는 자막'}],
+  ['게임 일차 제목',{y:40,size:300,font:'Black Han Sans',grad:true,gang:-25,gstops:[{c:'#ffd21f',p:0},{c:'#ffa20f',p:45},{c:'#ff5a14',p:100}],strokes:[],ext:true,extD:22,extA:115,extC:'#120a03',extC2:'#2b1606',sh:true,shc:'#000000',sho:45,shb:18,shd:10,sha:60,rot:-3,ain:'pop',ainD:.45,aout:'fade',text:'1일차'}],
+  ['입체 팝 제목',{y:45,size:170,font:'Black Han Sans',fill:'#ffffff',strokes:[{c:'#1d1d1d',w:4}],ext:true,extD:20,extA:50,extC:'#ff3d6e',extC2:'#8a0f33',sh:true,shc:'#000000',sho:40,shb:14,shd:8,sha:60,ain:'pop',ainD:.45,text:'입체 제목'}],
   ['무지개 그라데이션',{y:50,size:120,font:'Black Han Sans',grad:true,gstops:[{c:'#ff3d6e',p:0},{c:'#ffb02e',p:25},{c:'#ffe14a',p:45},{c:'#4cd964',p:65},{c:'#2fd5c5',p:82},{c:'#7c8cff',p:100}],strokes:[{c:'#ffffff',w:5}],ain:'pop',text:'무지개 글자'}],
   ['그라데이션 제목',{y:50,size:120,font:'Black Han Sans',grad:true,g1:'#25f0d8',g2:'#4f7dff',gang:0,strokes:[{c:'#ffffff',w:5}],sh:true,shc:'#000000',sho:50,shb:16,shd:6,sha:90,ain:'zoomin',ainD:.5,text:'그라데이션'}],
   ['이름표',{x:24,y:78,size:46,align:'left',bg:true,bgc:'#2fd5c5',bgo:100,fill:'#04201d',strokes:[],ain:'right',text:'이름 · 소개'}]];
@@ -1706,6 +1870,10 @@ function panelShape(el,c){
   const ap=section('색');ap.append(color(c.shape==='bar'?'채움 색':'칠',()=>C().fill,v=>C().fill=v));
   ap.append(slider('테두리',0,40,1,()=>C().bw,v=>C().bw=v,int));if(c.bw>0)ap.append(color('테두리 색',()=>C().bc,v=>C().bc=v));
   el.append(ap,gradEditor(C));
+  const ex=section('입체 글자 (3D 돌출)');ex.append(check('사용',()=>C().ext,v=>{const cc=C();cc.ext=v;if(v&&!cc.extD){cc.extD=14;cc.extA=40;cc.extC='#1a1208';}}));
+  if(c.ext)ex.append(slider('두께',1,60,1,()=>C().extD||14,v=>C().extD=v,int),slider('방향',0,359,1,()=>C().extA==null?45:C().extA,v=>C().extA=v,v=>Math.round(v)+'°'),
+    color('앞쪽 색',()=>C().extC||'#1a1208',v=>C().extC=v),color('뒤쪽 색',()=>C().extC2||C().extC||'#1a1208',v=>C().extC2=v));
+  el.append(ex);
   const sd=section('그림자');sd.append(check('사용',()=>C().sh,v=>C().sh=v));
   if(c.sh)sd.append(color('색',()=>C().shc,v=>C().shc=v),slider('불투명도',0,100,1,()=>C().sho,v=>C().sho=v,pct),slider('방향',0,359,1,()=>C().sha,v=>C().sha=v,v=>Math.round(v)+'°'),slider('거리',0,40,1,()=>C().shd,v=>C().shd=v,int),slider('흐림',0,60,1,()=>C().shb,v=>C().shb=v,int));
   el.append(sd);
@@ -1782,6 +1950,7 @@ function panelGfx(el){
     check('자동 줄바꿈',()=>C().wrap!==false,v=>C().wrap=v?undefined:false));
   if(c.wrap!==false)tx.append(slider('줄 최대 폭',30,100,1,()=>C().wrapW||90,v=>C().wrapW=v,v=>Math.round(v)+'%'));
   el.append(tx);
+  {const tb=h('button',null,'🎯 대상 따라가기 (모션 트래킹)…');tb.onclick=()=>{topTab='fx';renderPanels();setTimeout(()=>{const x=[...document.querySelectorAll('#topBody .sec h3')].find(n=>/트래킹/.test(n.textContent));if(x)x.scrollIntoView({block:'start'});},50);};const tw2=h('div','chips');tw2.append(tb);el.append(tw2);}
   const ap=section('모양');
   ap.append(color('칠',()=>C().fill,v=>C().fill=v));
   ap.append(gradEditor(C));
@@ -1935,6 +2104,12 @@ function renderTools(){const el=$('tools');el.textContent='';
 cv.addEventListener('pointerdown',e=>{
   if(exporting||e.button)return;const r=cv.getBoundingClientRect(),kx=W/r.width,ky=H/r.height;
   const x=(e.clientX-r.left)*kx,y=(e.clientY-r.top)*ky;
+  if(trackPick){e.preventDefault();setPlaying(false);busy++;const x0=x,y0=y;
+    const mv=ev=>{const x1=(ev.clientX-r.left)*kx,y1=(ev.clientY-r.top)*ky;trackPick.box={x:Math.min(x0,x1),y:Math.min(y0,y1),w:Math.abs(x1-x0),h:Math.abs(y1-y0)};};
+    const up=()=>{busy--;removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
+      const b=trackPick.box;if(!b||b.w<W*.012||b.h<H*.012){trackPick.box=null;toast('따라갈 대상을 네모로 크게 감싸 주세요.');return;}
+      const tp=trackPick;trackPick=null;document.body.classList.remove('picking');startTracking(tp.id,tp.vid,b);};
+    addEventListener('pointermove',mv);addEventListener('pointerup',up);return;}
   let hit=null;
   if(tool==='T'){setPlaying(false);
     for(const tr of [...VT].reverse()){const c=clipAt(tr,Math.min(t,Math.max(0,total-.02)));if(!c||P.off[tr]||c.kind!=='text')continue;const b=boxes.get(c.id);
@@ -3193,6 +3368,7 @@ $('res').onchange=e=>{const[w,hh]=e.target.value.split('x').map(Number);pushHist
 addEventListener('keydown',e=>{
   if(captureKey(e))return;
   const tg=e.target,tag=tg.tagName,mod=e.ctrlKey||e.metaKey,k=e.code;
+  if(e.key==='Escape'&&(trackPick||trackJob)){if(trackJob)trackJob.stop=true;trackPick=null;document.body.classList.remove('picking');toast('트래킹을 취소했습니다.');return;}
   if(e.key==='Escape'){if($('modal').classList.contains('show')&&!exporting){capturing=null;closeModal();}$('menu').style.display='none';if(cur){if(tg.blur&&tag!=='BODY')tg.blur();setTool('V');}return;}
   if(mod&&['Equal','Minus','Digit0','NumpadAdd','NumpadSubtract','Numpad0'].includes(k)){e.preventDefault();if(cur&&k!=='Digit0'&&k!=='Numpad0')setZoom(pps*(k.includes('Minus')||k.includes('Subtract')?1/1.3:1.3));return;}
   if(!cur){if(mod&&k==='Slash'){e.preventDefault();showKeys();}return;}

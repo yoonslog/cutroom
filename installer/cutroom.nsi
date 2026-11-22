@@ -4,7 +4,7 @@ Unicode true
 
 !define APPNAME "컷룸"
 !define APPEXE "CutRoom.exe"
-!define APPVER "1.4.2"
+!define APPVER "1.4.3"
 !define PUBLISHER "컷룸"
 !define SITE "https://yoonslog.github.io/cutroom/"
 !define REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\CutRoom"
@@ -18,7 +18,7 @@ SetCompressor /SOLID lzma
 ShowInstDetails hide
 ShowUnInstDetails hide
 
-VIProductVersion "1.4.2.0"
+VIProductVersion "1.4.3.0"
 VIAddVersionKey /LANG=1042 "ProductName" "컷룸 영상 편집기"
 VIAddVersionKey /LANG=1042 "FileDescription" "컷룸 영상 편집기 설치 프로그램"
 VIAddVersionKey /LANG=1042 "FileVersion" "${APPVER}"
