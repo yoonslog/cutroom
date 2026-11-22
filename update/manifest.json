@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "큰 영상 깜빡임 수정, 불러오기 로딩바, Velo 앱 아이콘"
+    "notes": "최대 30GB 영상 지원"
   }
 }
