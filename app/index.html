@@ -463,7 +463,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const VELO_VERSION='1.5.6';
+const VELO_VERSION='1.5.7';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -739,7 +739,10 @@ function sync(){
       if(fwd){
         const lim=isFinite(el.duration)?el.duration-.06:1e9,dv=want-el.currentTime;
         const r=clamp(c.speed*rate*(1+Math.sign(dv)*(Math.abs(dv)>.25?.08:Math.abs(dv)>.06?.03:0)),.07,16);if(Math.abs(el.playbackRate-r)>.005)el.playbackRate=r;
-        if(Math.abs(dv)>(el.readyState<3?1.5:.8)&&!el.seeking&&want<lim)el.currentTime=want;
+        if(c.id===masterId){
+          if(m.seekGen!==seekGen){m.seekGen=seekGen;if(Math.abs(dv)>.05&&want<lim)el.currentTime=want;}
+          if(Math.abs(el.playbackRate-c.speed*rate)>.005)el.playbackRate=c.speed*rate;
+        }else if(Math.abs(dv)>(el.readyState<3?1.5:.8)&&!el.seeking&&want<lim)el.currentTime=want;
         if(el.paused&&!el.ended&&want<lim)el.play().catch(()=>{});
       }else{
         if(!el.paused)el.pause();
@@ -1161,6 +1164,8 @@ function drawPreviews(now){
 // 큰 영상은 화면 영상을 기준 시계로 삼는다: 타임라인이 영상을 쫓아가 탐색(seek)하지 않으니 흔들림·멈칫이 없다.
 let bufSince=0;
 function masterClock(){
+  // 재생 중엔 화면 영상이 시계다. 타임라인이 영상을 따라가기만 하고, 영상을 뒤로 되돌리지 않는다.
+  masterId=null;
   if(exporting||rate<=0)return null;
   let best=null;
   for(const c of P.clips){if(c.kind!=='video'||P.off[c.tr])continue;const u=t-c.start;if(u<0||u>=dur(c))continue;
@@ -1168,10 +1173,13 @@ function masterClock(){
   if(!best){bufSince=0;return null;}
   const el=best.m.el,c=best.c,now=performance.now();
   if(el.ended||t>end(c)-.08||(isFinite(el.duration)&&el.currentTime>el.duration-.1)){bufSince=0;return null;}
-  if(el.seeking||el.readyState<3||el.paused){if(!bufSince)bufSince=now;if(now-bufSince<4000)return false;bufSince=0;return null;}
-  bufSince=0;const vt=c.start+(el.currentTime-c.in)/c.speed;
-  if(Math.abs(vt-t)>.6)return null;
-  return Math.max(t-.002,vt);
+  masterId=c.id;
+  if(best.m.seekGen!==seekGen)return false;              // 사용자가 옮긴 위치로 아직 이동 전
+  if(el.seeking||el.paused){if(!bufSince)bufSince=now;if(now-bufSince<8000)return false;bufSince=0;return false;}
+  bufSince=0;
+  const vt=c.start+(el.currentTime-c.in)/c.speed;
+  if(vt<t)return false;                                    // 영상이 늦으면 기다린다(되돌리지 않음)
+  return Math.min(vt,end(c)-1e-3);
 }
 let lastNow=performance.now(),liveUpd=[];
 function frame(now){
@@ -1195,7 +1203,8 @@ function setPlaying(v,r){
   if(v&&rate>0&&t>=total-.01)t=0;
   playing=v;wake();$('play').textContent=v?'❚❚ 정지':'▶ 재생';
 }
-function seek(v){t=clamp(v,0,total);}
+function seek(v){t=clamp(v,0,total);seekGen++;}
+let seekGen=0,masterId=null;
 const tcf=s=>{s=Math.max(0,s);const f=Math.round(s*P.fps),fr=f%P.fps,ss=Math.floor(f/P.fps);
   return String(Math.floor(ss/60)).padStart(2,'0')+':'+String(ss%60).padStart(2,'0')+':'+String(fr).padStart(2,'0');};
 function updPlayhead(){
@@ -3645,6 +3654,11 @@ async function checkUpdate(manual){
 if(IS_APP)setInterval(()=>checkUpdate(),3*3600*1000);
 /* ================= 앱 내 패치 노트 ================= */
 const PATCH_NOTES=[
+  ['1.5.7','2026-11-28','큰 영상 장면 반복(되감김) 근본 수정',[
+    '원인: 영상 준비 신호가 자주 떨어지는 큰 파일에서 타임라인이 멈춘 사이 영상은 계속 재생되고, 어긋남을 맞추려 영상을 뒤로 되돌려 같은 장면이 반복됨',
+    '이제 재생 중엔 영상이 기준 시계 — 타임라인은 영상을 따라가기만 하고 영상을 뒤로 되돌리지 않음 (사용자가 직접 옮길 때만 이동)',
+    '같은 상황을 흉내 낸 시험에서 되감김 이전 1~3회 → 0회, 재생 진행 13초 중 1초 → 11초',
+  ]],
   ['1.5.6','2026-11-28','번쩍임 근본 수정 · 회원가입·로그인·프로필',[
     '재생 중 화면에는 "지금 있어야 할 장면"의 프레임만 올립니다 — 디코더가 옛 장면을 잘못 내보내도 화면에 나오지 않음',
     '회원가입: 아이디 · 비밀번호 · 닉네임, 아이디 중복 확인 버튼',
