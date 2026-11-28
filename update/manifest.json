@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "큰 영상 끊김 없는 재생 · 오디오 볼륨선 · 새 로고"
+    "notes": "재생 중 옛 장면이 번쩍이던 문제 수정"
   }
 }
