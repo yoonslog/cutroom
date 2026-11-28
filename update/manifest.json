@@ -1,8 +1,8 @@
 {
   "applicationId": "kr.cutroom.app",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "resourcesURL": "https://yoonslog.github.io/cutroom/update/resources.neu",
   "data": {
-    "notes": "재생 중 옛 장면이 번쩍이던 문제 수정"
+    "notes": "번쩍임 근본 수정 · 회원가입·로그인·프로필"
   }
 }

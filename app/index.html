@@ -463,7 +463,7 @@ const oc2=document.createElement('canvas'),o2ctx=oc2.getContext('2d');
 const VT=['V1','V2','V3','V4','V5'],AT=['A1','A2','A3'];
 const IS_APP=!!window.NL_PORT||!!window.Neutralino;
 const CAN_P2P=IS_APP||!!window.CUTROOM_WEB;
-const VELO_VERSION='1.5.5';
+const VELO_VERSION='1.5.6';
 const SESSION=rid('s');
 let W=1280,H=720;
 
@@ -679,7 +679,11 @@ function mediaFor(c){
       hp.connect(dry);dry.connect(gain);hp.connect(conv);conv.connect(wet);wet.connect(gain);hp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(ew);ew.connect(gain);
       gain.connect(master);fx={dry,conv,wet,dl,fb,ew,size:null};}catch(e){gain=null;hp=null;fx=null;}}
     m={el,gain,hp,fx,url:s.url};els.set(c.id,m);
-    if(s.type==='video'&&el.requestVideoFrameCallback){m.rv=true;const mm=m,cb=()=>{if(els.get(c.id)!==mm)return;cacheFrame(mm);el.requestVideoFrameCallback(cb);};el.requestVideoFrameCallback(cb);}
+    if(s.type==='video'&&el.requestVideoFrameCallback){m.rv=true;const mm=m,cb=(now,meta)=>{if(els.get(c.id)!==mm)return;
+      // 지금 있어야 할 장면(want)에서 멀리 떨어진 프레임(디코더가 잘못 내보낸 옛 장면)은 화면에 올리지 않는다
+      const mt=meta&&meta.mediaTime!=null?meta.mediaTime:el.currentTime;
+      if(mm.ft==null||mm.want==null||Math.abs(mt-mm.want)<=.5||(mm.rej&&now-mm.rej>1500)){mm.rej=0;cacheFrame(mm,mt);}else if(!mm.rej)mm.rej=now;
+      el.requestVideoFrameCallback(cb);};el.requestVideoFrameCallback(cb);}
   }
   return m;
 }
@@ -731,7 +735,7 @@ function sync(){
     if(m.hp)m.hp.frequency.value=c.dn?170:10;
     if(m.fx)applyEcho(m.fx,c);
     if(on){
-      const want=c.in+u*c.speed;
+      const want=c.in+u*c.speed;m.want=want;
       if(fwd){
         const lim=isFinite(el.duration)?el.duration-.06:1e9,dv=want-el.currentTime;
         const r=clamp(c.speed*rate*(1+Math.sign(dv)*(Math.abs(dv)>.25?.08:Math.abs(dv)>.06?.03:0)),.07,16);if(Math.abs(el.playbackRate-r)>.005)el.playbackRate=r;
@@ -743,7 +747,7 @@ function sync(){
       }
       setVol(m,vol);
     }else{
-      if(!el.paused)el.pause();setVol(m,0);
+      if(!el.paused)el.pause();setVol(m,0);m.want=null;
       if(c.kind==='video'&&holdsForNext(c)){const w=Math.max(c.in,c.out-.04);if(Math.abs(el.currentTime-w)>.05&&!el.seeking)el.currentTime=w;}
       else{const si=c.start-t;if(fwd&&si>0&&si<1&&Math.abs(el.currentTime-c.in)>.05&&!el.seeking)el.currentTime=c.in;}
     }
@@ -1025,15 +1029,16 @@ function drawCounter(g,c,u,k,W0){
 function drawElem(g,c,u,k,W0){if(c.kind==='shape')return drawShapeLocal(g,c,u,k,W0);if(c.cnt&&c.cnt.on)return drawCounter(g,c,u,k,W0);return drawTextLocal(g,c,u,k,W0);}
 /* ================= 그리기: 합성 ================= */
 // 마지막으로 화면에 나온 영상 프레임을 보관한다. 영상이 잠깐 준비 안 된 순간에도 '방금 전 화면'이 나오므로 옛 장면이 번쩍이지 않는다.
-function cacheFrame(m){
+function cacheFrame(m,mt){
   const el=m.el,vw=el.videoWidth,vh=el.videoHeight;if(!vw||el.readyState<2)return;const q=Math.min(1,1280/vw);
   if(!m.fc){m.fc=document.createElement('canvas');m.fg=m.fc.getContext('2d');}
   const cw=Math.round(vw*q),ch=Math.round(vh*q);if(m.fc.width!==cw||m.fc.height!==ch){m.fc.width=cw;m.fc.height=ch;}
-  try{m.fg.drawImage(el,0,0,cw,ch);m.ft=el.currentTime;m.fw=vw;m.fh=vh;m.fq=q;}catch(e){}
+  try{m.fg.drawImage(el,0,0,cw,ch);m.ft=mt==null?el.currentTime:mt;m.fw=vw;m.fh=vh;m.fq=q;}catch(e){}
 }
 function frameOf(c){
   const s=S[c.src];if(!s||s.offline)return null;
   if(c.kind==='video'){const m=mediaFor(c);if(!m)return null;const el=m.el,ok=el.readyState>=2&&el.videoWidth&&!el.seeking;
+    if(m.rv&&m.ft!=null&&!exporting&&c.kind==='video')return [m.fc,m.fw,m.fh,m.fq];
     if(ok){const vw=el.videoWidth,vh=el.videoHeight;if(!m.rv||m.ft==null)cacheFrame(m);
       lastFrames.set(c.src,m);return [el,vw,vh,1];}
     const lf=m.ft!=null?m:lastFrames.get(c.src);
@@ -2737,9 +2742,7 @@ async function renderHome(){
   else if(store.mode==='cloud'&&store.me){const i=h('img');i.src=store.me.avatarUrl;i.alt='';who.append(i,h('span',null,(store.me.name||'로그인됨')+' · 작품이 계정에 저장됩니다'));}
   else if(IS_APP&&prof()){const d=h('span');d.style.cssText=`width:22px;height:22px;border-radius:50%;background:${prof().color}`;who.append(d,h('span',null,prof().name+' · 작품이 이 컴퓨터에 저장됩니다'));}
   else who.append(h('span',null,IS_APP?'PC 앱 · 작품이 이 컴퓨터에 저장됩니다':'로그인하지 않음 · 작품이 이 브라우저에만 저장됩니다'));
-  if(!fb.on&&!IS_APP&&!CAN_P2P){$('bLogin').hidden=false;$('bLogin').textContent='👤 로그인';}
-  if(fb.on){$('bLogin').hidden=false;$('bLogin').textContent=fb.profile?'👤 '+fb.profile.name:'👤 로그인 / 회원가입';}
-  else if(IS_APP){$('bLogin').hidden=false;$('bLogin').textContent=prof()?'👤 '+prof().name:'👤 로그인';}
+  paintLoginBtn();
   $('bJoin').hidden=!CAN_P2P;
   if(IS_APP){const u=h('button','mini','v'+(window.NL_APPVERSION||VELO_VERSION)+' · 업데이트 확인');u.onclick=()=>checkUpdate(true);who.append(u);}
   {const pn=h('button','mini','📋 패치 노트');pn.onclick=()=>showPatchNotes();who.append(pn);}
@@ -2795,19 +2798,7 @@ $('bView').onclick=()=>{homeList=!homeList;renderHome();};
 
 /* ================= 앱: 로그인 · 서버 열기(P2P 공동 작업) ================= */
 const prof=()=>fb.profile||lsGet('cutroom.profile',null);
-function appLogin(after){
-  const p=prof()||{};
-  modal(b=>{b.append(h('h3',null,p.name?'내 계정':'앱 로그인'));
-    b.append(h('p','hint','공동 작업에서 다른 사람에게 보일 이름과 색입니다. 이 컴퓨터에 저장됩니다.'));
-    const n=h('input');n.type='text';n.value=p.name||'';n.placeholder='닉네임';n.maxLength=20;
-    const col=h('input');col.type='color';col.value=p.color||'#2fd5c5';
-    b.append(row('닉네임',n),row('내 색',col));
-    const a=h('div','acts'),c=h('button',null,'취소'),g=h('button','primary',p.name?'저장':'로그인');c.onclick=closeModal;a.append(c);
-    if(p.name){const o=h('button','danger','로그아웃');o.onclick=()=>{try{localStorage.removeItem('cutroom.profile');}catch(e){}closeModal();renderHome();toast('로그아웃했습니다.');};a.prepend(o);}
-    const ok=()=>{const nm=n.value.trim();if(!nm){toast('닉네임을 입력하세요.');n.focus();return;}
-      lsSet('cutroom.profile',{name:nm,color:col.value,id:p.id||rid('u')});closeModal();renderHome();if(cur)renderCollabBar();toast(nm+'님으로 로그인했습니다.');after&&after();};
-    g.onclick=ok;n.onkeydown=e=>{if(e.key==='Enter')ok();};a.append(g);b.append(a);setTimeout(()=>n.focus(),0);});
-}
+function appLogin(after){accountDialog('login',after);}
 let net={peer:null,role:null,conns:[],host:null,code:null,people:{},asked:new Set()};
 const peerOK=()=>typeof window.Peer==='function';
 function p2pReset(){clearCursors();try{net.peer&&net.peer.destroy();}catch(e){}net={peer:null,role:null,conns:[],host:null,code:null,people:{},asked:new Set()};if(cur)renderCollabBar();}
@@ -2961,52 +2952,104 @@ async function fbAfterLogin(u,silent){
 function myProfile(){if(fb.profile)return fb.profile;const p=prof();if(p)return p;if(store.me)return {name:store.me.name||'참여자',color:store.me.color||'#2fd5c5'};return {name:'참여자',color:'#2fd5c5'};}
 const FB_ERR={'auth/invalid-credential':'아이디 또는 비밀번호가 맞지 않습니다.','auth/wrong-password':'아이디 또는 비밀번호가 맞지 않습니다.','auth/user-not-found':'없는 아이디입니다.',
   'auth/email-already-in-use':'이미 있는 아이디입니다.','auth/weak-password':'비밀번호는 6자 이상이어야 합니다.','auth/too-many-requests':'시도가 너무 많습니다. 잠시 뒤 다시 해 주세요.','auth/network-request-failed':'인터넷 연결을 확인해 주세요.'};
-function fbAuthDialog(mode){
-  mode=mode||'login';
-  if(fb.user){
-    modal(b=>{b.append(h('h3',null,'내 계정'));const p=fb.profile;
-      b.append(h('p','hint',`아이디: ${p.id} · 닉네임: ${p.name}`));
-      const n=h('input');n.type='text';n.value=p.name;n.maxLength=20;const col=h('input');col.type='color';col.value=p.color||'#2fd5c5';
-      b.append(row('닉네임',n),row('내 색',col));
+/* ---- 계정: 회원가입(아이디·비밀번호·닉네임) · 아이디 중복 확인 · 로그인 · 프로필 ---- */
+const ID_RE=/^[a-z0-9_]{3,20}$/;
+const accts=()=>lsGet('velo.accounts',{});
+async function pwHash(pw,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
+  const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:120000,hash:'SHA-256'},k,256);
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function avatarFrom(file){return new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=96;const g=c.getContext('2d'),m=Math.min(im.width,im.height);
+  g.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,96,96);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.8));};im.onerror=()=>rej();im.src=u;});}
+const AUTH={
+  async idFree(id){if(fb.on)return !(await fb.db.ref('usernames/'+id).get()).exists();return !accts()[id];},
+  async signup(id,pw,prof2){
+    if(fb.on){const cr=await fb.auth.createUserWithEmailAndPassword(fbEmail(id),pw);
+      await fb.db.ref('usernames/'+id).set(cr.user.uid);await fb.db.ref('profiles/'+cr.user.uid).set(Object.assign({id},prof2));await fbAfterLogin(cr.user);return;}
+    const a=accts(),salt=rid('s');a[id]={salt,hash:await pwHash(pw,salt),p:prof2};lsSet('velo.accounts',a);lsSet('cutroom.profile',Object.assign({id,local:true},prof2));},
+  async login(id,pw){
+    if(fb.on){const cr=await fb.auth.signInWithEmailAndPassword(fbEmail(id),pw);await fbAfterLogin(cr.user);return;}
+    const x=accts()[id];if(!x)throw {code:'auth/user-not-found'};if(await pwHash(pw,x.salt)!==x.hash)throw {code:'auth/wrong-password'};
+    lsSet('cutroom.profile',Object.assign({id,local:true},x.p));},
+  async save(p2){
+    if(fb.on){fb.profile=Object.assign({},fb.profile,p2);await fb.db.ref('profiles/'+fb.user.uid).set(fb.profile);return;}
+    const me=lsGet('cutroom.profile',{}),a=accts();if(a[me.id])a[me.id].p=p2;lsSet('velo.accounts',a);lsSet('cutroom.profile',Object.assign({},me,p2));},
+  async changePw(oldPw,newPw){
+    if(fb.on){const cred=firebase.auth.EmailAuthProvider.credential(fb.user.email,oldPw);await fb.user.reauthenticateWithCredential(cred);await fb.user.updatePassword(newPw);return;}
+    const me=lsGet('cutroom.profile',{}),a=accts(),x=a[me.id];if(!x||await pwHash(oldPw,x.salt)!==x.hash)throw {code:'auth/wrong-password'};
+    x.salt=rid('s');x.hash=await pwHash(newPw,x.salt);lsSet('velo.accounts',a);},
+  async logout(){if(fb.on&&fb.user){await fb.auth.signOut();fb.user=null;fb.profile=null;store.mode='local';store.uid=null;listen();}try{localStorage.removeItem('cutroom.profile');}catch(e){}}
+};
+function avatarEl(p,sz){const d=h('span');d.style.cssText=`display:inline-grid;place-items:center;width:${sz}px;height:${sz}px;border-radius:50%;overflow:hidden;background:${p.color||'#2fd5c5'};color:#0b1a18;font-weight:700;font-size:${sz*.45}px;flex:none;vertical-align:middle`;
+  if(p.avatar){const i=h('img');i.src=p.avatar;i.style.cssText='width:100%;height:100%;object-fit:cover';d.append(i);}else d.textContent=(p.name||'?').slice(0,1).toUpperCase();return d;}
+function paintLoginBtn(){const b=$('bLogin');if(!b)return;b.hidden=false;const p=prof();b.textContent='';
+  if(p){b.append(avatarEl(p,20),document.createTextNode(' '+p.name));}else b.textContent='👤 로그인 / 회원가입';}
+function accountDialog(mode,after){
+  const me=prof();
+  if(me&&(fb.on?fb.user:true)){
+    modal(b=>{b.append(h('h3',null,'내 프로필'));
+      let av=me.avatar||'';const pv=h('div');pv.style.cssText='display:flex;align-items:center;gap:12px;margin:6px 0 10px';
+      const paint=()=>{pv.textContent='';pv.append(avatarEl({name:n.value||me.name,color:col.value,avatar:av},56));
+        const f=h('input');f.type='file';f.accept='image/*';f.hidden=true;f.onchange=async()=>{if(f.files[0]){try{av=await avatarFrom(f.files[0]);paint();}catch(e){toast('사진을 열지 못했습니다.');}}};
+        const up=h('button','mini','사진 바꾸기');up.onclick=()=>f.click();const rm=h('button','mini','사진 지우기');rm.onclick=()=>{av='';paint();};pv.append(up,rm,f);};
+      b.append(h('p','hint',`아이디: ${me.id}`+(fb.on?'':' · 이 브라우저(기기)에만 저장되는 계정')));
+      const n=h('input');n.type='text';n.value=me.name||'';n.maxLength=20;const col=h('input');col.type='color';col.value=me.color||'#2fd5c5';
+      const bio=h('textarea');bio.value=me.bio||'';bio.maxLength=120;bio.rows=2;bio.placeholder='한 줄 소개 (120자)';bio.style.cssText='width:100%;resize:none';
+      b.append(pv,row('닉네임',n),row('내 색',col),row('소개',bio));n.oninput=col.oninput=paint;paint();
+      const msg=h('p','hint');msg.style.color='var(--danger)';b.append(msg);
+      const pw0=h('input'),pw1=h('input');pw0.type=pw1.type='password';pw0.placeholder='현재 비밀번호';pw1.placeholder='새 비밀번호 (6자 이상)';
+      const chg=h('button','mini','비밀번호 변경');chg.onclick=async()=>{msg.style.color='var(--danger)';msg.textContent='';
+        if(pw1.value.length<6){msg.textContent='새 비밀번호는 6자 이상이어야 합니다.';return;}
+        try{await AUTH.changePw(pw0.value,pw1.value);pw0.value=pw1.value='';msg.style.color='var(--ok,#4cd964)';msg.textContent='비밀번호를 바꿨습니다.';}catch(e){msg.textContent=(e&&FB_ERR[e.code])||'현재 비밀번호가 맞지 않습니다.';}};
+      b.append(row('비밀번호',pw0),row('새 비밀번호',pw1),chg);
       const a=h('div','acts'),o=h('button','danger','로그아웃'),c=h('button',null,'닫기'),g=h('button','primary','저장');
-      o.onclick=async()=>{await fb.auth.signOut();fb.user=null;fb.profile=null;store.mode='local';store.uid=null;closeModal();listen();toast('로그아웃했습니다.');};
-      c.onclick=closeModal;g.onclick=async()=>{fb.profile=Object.assign({},p,{name:n.value.trim()||p.name,color:col.value});await fb.db.ref('profiles/'+fb.user.uid).set(fb.profile);closeModal();renderHome();toast('저장했습니다.');};
+      o.onclick=async()=>{await AUTH.logout();closeModal();renderHome();if(cur)renderCollabBar();toast('로그아웃했습니다.');};
+      c.onclick=closeModal;g.onclick=async()=>{const nm=n.value.trim();if(!nm){msg.textContent='닉네임을 입력하세요.';return;}
+        try{await AUTH.save({name:nm,color:col.value,bio:bio.value.trim(),avatar:av});closeModal();renderHome();if(cur)renderCollabBar();toast('프로필을 저장했습니다.');}catch(e){msg.textContent='저장하지 못했습니다. 인터넷 연결을 확인해 주세요.';}};
       a.append(o,c,g);b.append(a);});return;
   }
+  mode=mode||'login';
   modal(b=>{
-    const tabs=h('div','subtabs');for(const[k,n]of [['login','로그인'],['signup','회원가입']]){const t2=h('button',mode===k?'on':'',n);t2.onclick=()=>fbAuthDialog(k);tabs.append(t2);}
+    const tabs=h('div','subtabs');for(const[k,n]of [['login','로그인'],['signup','회원가입']]){const t2=h('button',mode===k?'on':'',n);t2.onclick=()=>accountDialog(k,after);tabs.append(t2);}
     b.append(h('h3',null,'Velo 계정'),tabs);
-    const id=h('input');id.type='text';id.placeholder='영문·숫자 3~20자';id.autocomplete='username';id.maxLength=20;
+    const id=h('input');id.type='text';id.placeholder='영문 소문자·숫자·_ 3~20자';id.autocomplete='username';id.maxLength=20;
     const pw=h('input');pw.type='password';pw.placeholder='6자 이상';pw.autocomplete=mode==='login'?'current-password':'new-password';
-    b.append(row('아이디',id),row('비밀번호',pw));
-    let pw2,nick,col;
-    if(mode==='signup'){pw2=h('input');pw2.type='password';pw2.autocomplete='new-password';nick=h('input');nick.type='text';nick.maxLength=20;nick.placeholder='다른 사람에게 보일 이름';
+    const msg=h('p','hint');msg.style.color='var(--danger)';
+    let pw2,nick,col,okId=null;
+    if(mode==='signup'){
+      const chk=h('button','mini','중복 확인'),idMsg=h('span','hint');idMsg.style.marginLeft='8px';
+      const check=async()=>{const v=id.value.trim().toLowerCase();okId=null;idMsg.style.color='var(--danger)';
+        if(!ID_RE.test(v)){idMsg.textContent='영문 소문자·숫자·_ 3~20자로 입력하세요.';return false;}
+        chk.disabled=true;idMsg.style.color='';idMsg.textContent='확인 중…';
+        try{const free=await AUTH.idFree(v);okId=free?v:null;idMsg.style.color=free?'#4cd964':'var(--danger)';idMsg.textContent=free?'사용할 수 있는 아이디입니다.':'이미 있는 아이디입니다.';return free;}
+        catch(e){idMsg.style.color='var(--danger)';idMsg.textContent='확인하지 못했습니다. 인터넷 연결을 확인해 주세요.';return false;}finally{chk.disabled=false;}};
+      chk.onclick=check;id.oninput=()=>{okId=null;idMsg.textContent='';};
+      const rw=row('아이디',id);rw.append(chk);b.append(rw,idMsg);
+      pw2=h('input');pw2.type='password';pw2.autocomplete='new-password';nick=h('input');nick.type='text';nick.maxLength=20;nick.placeholder='다른 사람에게 보일 이름';
       col=h('input');col.type='color';col.value=['#2fd5c5','#ff5fa2','#ffb02e','#7c8cff','#4cd964'][Math.floor(Math.random()*5)];
-      b.append(row('비밀번호 확인',pw2),row('닉네임',nick),row('내 색',col));}
-    const msg=h('p','hint');msg.style.color='var(--danger)';b.append(msg);
-    b.append(h('p','hint','계정을 만들면 웹과 PC 앱 어디서든 같은 작품을 열고, 아이디로 다른 사람을 공동 작업에 초대할 수 있습니다.'));
+      b.append(row('비밀번호',pw),row('비밀번호 확인',pw2),row('닉네임',nick),row('내 색',col));b.__check=check;
+    }else b.append(row('아이디',id),row('비밀번호',pw));
+    b.append(msg);
+    b.append(h('p','hint',fb.on?'계정을 만들면 웹과 PC 앱 어디서든 같은 작품을 열고, 아이디로 다른 사람을 공동 작업에 초대할 수 있습니다.':'지금은 계정 서버가 연결되어 있지 않아, 이 계정은 이 기기의 이 브라우저(또는 앱)에만 저장됩니다. 다른 기기에서는 쓸 수 없어요.'));
     const a=h('div','acts'),c=h('button',null,'취소'),g=h('button','primary',mode==='login'?'로그인':'가입하고 로그인');c.onclick=closeModal;
     const go=async()=>{
       const uid0=id.value.trim().toLowerCase();msg.textContent='';
-      if(!/^[a-z0-9_]{3,20}$/.test(uid0)){msg.textContent='아이디는 영문 소문자·숫자·밑줄(_) 3~20자로 입력하세요.';return;}
+      if(!ID_RE.test(uid0)){msg.textContent='아이디는 영문 소문자·숫자·밑줄(_) 3~20자로 입력하세요.';return;}
       if(pw.value.length<6){msg.textContent='비밀번호는 6자 이상이어야 합니다.';return;}
       g.disabled=true;
       try{
         if(mode==='signup'){
           if(pw.value!==pw2.value)throw {code:'x',message:'비밀번호 확인이 다릅니다.'};
-          const taken=(await fb.db.ref('usernames/'+uid0).get()).exists();if(taken)throw {code:'auth/email-already-in-use'};
-          const cr=await fb.auth.createUserWithEmailAndPassword(fbEmail(uid0),pw.value);
-          await fb.db.ref('usernames/'+uid0).set(cr.user.uid);
-          await fb.db.ref('profiles/'+cr.user.uid).set({id:uid0,name:nick.value.trim()||uid0,color:col.value});
-          closeModal();await fbAfterLogin(cr.user);
-        }else{
-          const cr=await fb.auth.signInWithEmailAndPassword(fbEmail(uid0),pw.value);closeModal();await fbAfterLogin(cr.user);
-        }
+          if(!nick.value.trim())throw {code:'x',message:'닉네임을 입력하세요.'};
+          if(okId!==uid0&&!(await b.__check()))throw {code:'x',message:'아이디 중복 확인을 통과해야 합니다.'};
+          await AUTH.signup(uid0,pw.value,{name:nick.value.trim(),color:col.value,bio:'',avatar:''});
+          closeModal();renderHome();if(cur)renderCollabBar();toast(nick.value.trim()+'님, 가입을 환영합니다.');if(fb.on)offerMigrate();after&&after();
+        }else{await AUTH.login(uid0,pw.value);closeModal();renderHome();if(cur)renderCollabBar();toast((prof()||{}).name+'님으로 로그인했습니다.');after&&after();}
       }catch(e){msg.textContent=(e&&FB_ERR[e.code])||(e&&e.message)||'다시 시도해 주세요.';g.disabled=false;}
     };
-    g.onclick=go;[id,pw,pw2].forEach(x=>x&&(x.onkeydown=e=>{if(e.key==='Enter')go();}));a.append(c,g);b.append(a);setTimeout(()=>id.focus(),0);
+    g.onclick=go;[id,pw,pw2,nick].forEach(x=>x&&(x.onkeydown=e=>{if(e.key==='Enter')go();}));a.append(c,g);b.append(a);setTimeout(()=>id.focus(),0);
   });
 }
+const fbAuthDialog=accountDialog;
 function offerMigrate(){
   const local=Object.values(lsGet('cutroom.projects',{}));if(!local.length)return;
   modal(b=>{b.append(h('h3',null,'이 기기의 작품을 계정으로 옮길까요?'),h('p','hint',`이 기기에만 저장된 작품 ${local.length}개를 계정에 올립니다. 영상 원본은 이 기기에 그대로 있습니다.`));
@@ -3602,6 +3645,12 @@ async function checkUpdate(manual){
 if(IS_APP)setInterval(()=>checkUpdate(),3*3600*1000);
 /* ================= 앱 내 패치 노트 ================= */
 const PATCH_NOTES=[
+  ['1.5.6','2026-11-28','번쩍임 근본 수정 · 회원가입·로그인·프로필',[
+    '재생 중 화면에는 "지금 있어야 할 장면"의 프레임만 올립니다 — 디코더가 옛 장면을 잘못 내보내도 화면에 나오지 않음',
+    '회원가입: 아이디 · 비밀번호 · 닉네임, 아이디 중복 확인 버튼',
+    '로그인 / 로그아웃, 프로필(사진 · 닉네임 · 색 · 한 줄 소개), 비밀번호 변경',
+    '계정 서버 연결 전에는 이 기기에만 저장되는 계정으로 동작',
+  ]],
   ['1.5.5','2026-11-28','재생 중 옛 장면이 번쩍이던 문제 수정',[
     '큰 영상(15GB 등)을 재생할 때 방금 지나간 장면이 번쩍이며 섞여 보이던 문제 수정 — 항상 가장 마지막에 나온 프레임을 보관해 사용',
     '재생 속도 미세 조절을 단계식으로 바꿔 소리·화면 떨림을 줄임',
@@ -3768,7 +3817,7 @@ applyLayout();
   renderQuick();renderSide();renderHome();requestAnimationFrame(frame);
   if(window.Neutralino&&Neutralino.init){try{Neutralino.init();
     Neutralino.events.on('windowClose',async()=>{try{if(cur){const th=thumbNow();if(th)cur.thumb=th;await saveNow(true);}}catch(e){}try{p2pReset();}catch(e){}try{await Neutralino.app.exit();}catch(e){window.close();}});}catch(e){}}
-  $('bLogin').onclick=()=>fb.on?fbAuthDialog():(IS_APP||CAN_P2P)?appLogin():siteLogin();$('bJoin').onclick=()=>p2pDialog();
+  $('bLogin').onclick=()=>accountDialog();$('bJoin').onclick=()=>p2pDialog();
   if(window.CUTROOM_USE_CLAUDE)await initStore();
   if(store.mode!=='cloud')await initFirebase();
   if(IS_APP)checkUpdate();
